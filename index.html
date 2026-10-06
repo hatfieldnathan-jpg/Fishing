@@ -97,6 +97,9 @@ body.editor #editor-panel{display:block}
 #ed-hint{font-size:10.5px;color:#8b98a8;line-height:1.55;margin-top:8px}
 #ed-hint kbd{background:rgba(255,255,255,.1);border-radius:3px;padding:0 4px;font-family:inherit;font-size:9.5px}
 .ed-sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0 10px}
+#ed-advanced-toggle{font-size:10px;padding:6px;opacity:.7;margin-top:6px}
+#ed-advanced{display:none;margin-top:6px;padding:8px;border-radius:9px;background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.06)}
 
 /* EDITOR MOBILE CONTROLS */
 #ed-joystick-zone{position:absolute;bottom:30px;left:30px;width:150px;height:150px;
@@ -204,21 +207,24 @@ body.editor #ed-alt-btns{display:flex}
 <button id="editor-toggle">✎ SCENE EDITOR</button>
 
 <div id="editor-panel">
-  <h4>GitHub Assets</h4>
-  <label>Repo (owner/name)</label>
-  <input id="ed-repo" placeholder="Vewerty/ultimate-fishing">
-  <div class="ed-row2" style="margin-top:6px">
-    <div><label>Branch</label><input id="ed-branch" value="main"></div>
-    <div><label>Folder</label><input id="ed-folder" value="assets"></div>
-  </div>
-  <button class="ed-btn" id="ed-scan">Scan Repo Folder</button>
-  <div id="ed-status"></div>
-  <div class="ed-list" id="ed-remote"><div class="ed-empty">Not scanned yet</div></div>
+  <h4>Assets Folder</h4>
+  <button class="ed-btn" id="ed-scan">⟳ Rescan assets/</button>
+  <div id="ed-status">Idle</div>
+  <div class="ed-list" id="ed-remote"><div class="ed-empty">Opening editor will scan automatically</div></div>
 
-  <label style="margin-top:14px">Direct URL / Local Path</label>
-  <div class="ed-row2">
-    <input id="ed-url" placeholder="assets/island.glb or boat.obj">
-    <button class="ed-btn" id="ed-url-add" style="margin-top:0">Load</button>
+  <button class="ed-btn" id="ed-advanced-toggle">⚙ Advanced ▾</button>
+  <div id="ed-advanced">
+    <label>Repo (owner/name)</label>
+    <input id="ed-repo" placeholder="auto-detected from URL">
+    <div class="ed-row2" style="margin-top:6px">
+      <div><label>Branch</label><input id="ed-branch" value="main"></div>
+      <div><label>Folder</label><input id="ed-folder" value="assets"></div>
+    </div>
+    <label style="margin-top:10px">Direct URL / Path</label>
+    <div class="ed-row2">
+      <input id="ed-url" placeholder="assets/island.glb">
+      <button class="ed-btn" id="ed-url-add" style="margin-top:0">Load</button>
+    </div>
   </div>
 
   <div class="ed-sep"></div>
@@ -914,7 +920,7 @@ function editorLoadOBJ(url, name, assetPath) {
             );
         },
         undefined,
-        () => { tryPlain(); }   // no MTL → plain OBJ
+        () => { tryPlain(); }
     );
 }
 
@@ -927,18 +933,12 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
         if (o.material) {
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
-                // Standard material settings that work well with the game's lighting
                 m.side = THREE.FrontSide;
-                if (m.map) {
-                    m.map.anisotropy = 8;
-                    m.map.needsUpdate = true;
-                }
-                // Phong (OBJ default) — tune so it reacts nicely to our lights
+                if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
                 if (m.isMeshPhongMaterial) {
                     m.shininess = 25;
                     if (m.specular && m.specular.isColor) m.specular.setHex(0x222222);
                 }
-                // If material has no map but has color, ensure it isn't black
                 if (!m.map && m.color && m.color.getHex() === 0x000000 && !m.emissive) {
                     m.color.setHex(0xffffff);
                 }
@@ -961,21 +961,65 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
 }
 
 // =====================================================================
-//  REPO SCAN
+//  AUTO-DETECT + SCAN
 // =====================================================================
 let editorRepoBase = null, editorRemoteFiles = [];
 
-async function editorScanRepo() {
-    const raw = $('ed-repo').value.trim()
-        .replace(/^https?:\/\/github\.com\//, '')
-        .replace(/\.git$/, '').replace(/\/$/, '');
-    if (!raw.includes('/')) { edStatus('Enter as owner/repo', '#ff5566'); return; }
+// Detect owner/repo from GitHub Pages URL
+function detectRepoFromURL() {
+    const host = location.hostname;
+    const path = location.pathname.split('/').filter(Boolean);
+    // Match https://owner.github.io/repo/...
+    const m = host.match(/^([a-z0-9_-]+)\.github\.io$/i);
+    if (m && path[0]) return { owner: m[1], repo: path[0] };
+    return null;
+}
+
+// Auto-fill repo input from URL (called on load)
+function autoFillRepo() {
+    const det = detectRepoFromURL();
+    if (det) {
+        const r = $('ed-repo');
+        if (!r.value) r.value = `${det.owner}/${det.repo}`;
+        return `${det.owner}/${det.repo}`;
+    }
+    return null;
+}
+
+// Silent fetch — tries the API and updates the list if it works
+async function editorScanRepo(silent) {
+    let raw = $('ed-repo').value.trim();
+
+    // Auto-detect if blank
+    if (!raw) {
+        raw = autoFillRepo() || '';
+        if (!raw) {
+            if (!silent) edStatus('Not on GitHub Pages — open Advanced to type owner/repo', '#ff5566');
+            return;
+        }
+    }
+
+    // Normalize any URL / path into owner/repo
+    raw = raw
+        .replace(/^git@github\.com:/, '')
+        .replace(/^https?:\/\/(www\.)?github\.com\//, '')
+        .replace(/\.git$/, '')
+        .replace(/^\/+|\/+$/g, '');
+    const parts = raw.split('/');
+    if (parts.length > 2) raw = parts[0] + '/' + parts[1];
+
+    if (!raw.includes('/')) {
+        if (!silent) edStatus('Enter as owner/repo', '#ff5566');
+        return;
+    }
+
     const branch = $('ed-branch').value.trim() || 'main';
     const folder = $('ed-folder').value.trim().replace(/^\/+|\/+$/g, '') || 'assets';
-    edStatus('Scanning…', '#8b98a8');
+
+    edStatus('Scanning ' + raw + '/' + folder + '…', '#8b98a8');
     try {
         const res = await fetch(`https://api.github.com/repos/${raw}/contents/${folder}?ref=${branch}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 404 ? ' (check repo/branch/folder)' : ''));
+        if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 404 ? ' (folder not found)' : ''));
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error('Not a folder');
 
@@ -996,15 +1040,16 @@ async function editorScanRepo() {
                 };
             });
         renderEditorRemote();
-        edStatus(editorRemoteFiles.length + ' model(s) found', '#38ef7d');
+        edStatus(editorRemoteFiles.length + ' model(s) in ' + folder + '/', editorRemoteFiles.length ? '#38ef7d' : '#ffaa44');
     } catch (e) {
-        edStatus('Error: ' + e.message, '#ff5566');
+        if (!silent) edStatus('Error: ' + e.message, '#ff5566');
+        else edStatus('Auto-scan failed — open Advanced', '#ffaa44');
     }
 }
 
 function renderEditorRemote() {
     const el = $('ed-remote');
-    if (!editorRemoteFiles.length) { el.innerHTML = '<div class="ed-empty">No .glb / .gltf / .obj files</div>'; return; }
+    if (!editorRemoteFiles.length) { el.innerHTML = '<div class="ed-empty">No .glb / .gltf / .obj found</div>'; return; }
     el.innerHTML = '';
     editorRemoteFiles.forEach(f => {
         const added = editorModels.some(m => m.assetPath === f.path);
@@ -1157,11 +1202,17 @@ document.querySelectorAll('.ed-btn.mode').forEach(btn => {
     };
 });
 
-$('ed-scan').onclick = editorScanRepo;
+$('ed-scan').onclick = () => editorScanRepo(false);
 
-// =====================================================================
-//  DIRECT URL LOAD (with auto extension detection)
-// =====================================================================
+// Advanced toggle
+$('ed-advanced-toggle').onclick = () => {
+    const el = $('ed-advanced');
+    const open = el.style.display === 'block';
+    el.style.display = open ? 'none' : 'block';
+    $('ed-advanced-toggle').textContent = open ? '⚙ Advanced ▾' : '⚙ Advanced ▴';
+};
+
+// Direct URL load (with extension detection)
 $('ed-url-add').onclick = () => {
     const raw = $('ed-url').value.trim();
     if (!raw) return;
@@ -1173,13 +1224,11 @@ $('ed-url-add').onclick = () => {
     if (em0) ext = em0[1].toLowerCase();
 
     if (/^https?:\/\//.test(raw)) {
-        // Remote URL — try to infer name/extension
         const fname = raw.split('/').pop().split('?')[0];
         name = fname.replace(/\.(glb|gltf|obj)$/i, '');
         const em = fname.match(/\.(glb|gltf|obj)$/i);
         if (em) ext = em[1].toLowerCase();
     } else if (editorRepoBase) {
-        // Local path → resolve against repo
         const clean = raw.replace(/^\/+/, '');
         const path = clean.startsWith(editorRepoBase.folder + '/') ? clean : (editorRepoBase.folder + '/' + clean);
         url = `https://raw.githubusercontent.com/${editorRepoBase.repo}/${editorRepoBase.branch}/${path}`;
@@ -1190,10 +1239,8 @@ $('ed-url-add').onclick = () => {
     }
 
     if (!ext) ext = 'glb';
-
     if (ext === 'obj') editorLoadOBJ(url, name, raw);
     else editorLoadGLB(url, name, raw);
-
     $('ed-url').value = '';
 };
 
@@ -1261,6 +1308,8 @@ function edResetJoystick() {
 // =====================================================================
 //  EDITOR TOGGLE / KEYBOARD / UPDATE
 // =====================================================================
+let autoScanDone = false;
+
 $('editor-toggle').onclick = () => {
     editorMode = !editorMode;
     document.body.classList.toggle('editor', editorMode);
@@ -1274,7 +1323,15 @@ $('editor-toggle').onclick = () => {
         cameraAngles.yaw = e.y; cameraAngles.pitch = e.x;
         if (currentRodModel) currentRodModel.visible = false;
         editorControl.enabled = true;
-        editorToast('Editor ON — joystick or WASD to fly');
+        editorToast('Editor ON');
+
+        // Auto-scan the sibling assets/ folder once
+        if (!autoScanDone) {
+            autoScanDone = true;
+            editorScanRepo(true);
+        } else if (!editorRemoteFiles.length) {
+            editorScanRepo(true);
+        }
     } else {
         camera.position.copy(savedCam.pos);
         camera.quaternion.copy(savedCam.quat);
@@ -1400,6 +1457,9 @@ setTimeout(() => {
     setTimeout(() => { l.style.display = 'none'; document.getElementById('ui-layer').style.opacity = '1'; }, 800);
 }, 2000);
 updateHUD();
+
+// Pre-fill the repo input (visible only in Advanced) so it's ready when you open the editor
+autoFillRepo();
 
 // =====================================================================
 //  MAIN LOOP
