@@ -57,6 +57,70 @@ body.editor #crosshair,body.editor #interaction-msg{display:none!important}
 body.editor #editor-toggle{background:linear-gradient(135deg,#00c6ff,#0072ff);border-color:transparent;
   box-shadow:0 0 22px rgba(0,198,255,.6)}
 
+/* ============ BIG OBVIOUS DEBUG PANEL ============ */
+#editor-debug{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:9999; display:none; pointer-events:auto;
+  width:min(860px, 92vw); max-height:78vh; overflow:auto;
+  background:rgba(5,8,15,.96); border:4px solid #00c6ff;
+  border-radius:18px; padding:22px 26px;
+  box-shadow:0 0 60px rgba(0,198,255,.85), 0 0 120px rgba(0,198,255,.4), 0 24px 60px rgba(0,0,0,.9);
+  color:#fff; font-family:ui-monospace,Consolas,monospace; font-size:15px; line-height:1.55;
+  backdrop-filter:blur(14px)
+}
+body.editor.has-debug #editor-debug{display:block}
+#editor-debug h2{
+  margin:0 0 14px; font-size:26px; letter-spacing:1px; font-family:'Segoe UI',Tahoma,sans-serif;
+  text-transform:uppercase; display:flex; align-items:center; justify-content:space-between; gap:14px
+}
+#editor-debug h2 .status-ok{color:#38ef7d; text-shadow:0 0 14px rgba(56,239,125,.7)}
+#editor-debug h2 .status-fail{color:#ff5566; text-shadow:0 0 14px rgba(255,85,102,.9)}
+#editor-debug h2 .status-warn{color:#ffb84d; text-shadow:0 0 14px rgba(255,184,77,.9)}
+#editor-debug .close-x{
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); color:#fff;
+  cursor:pointer; font-size:15px; padding:5px 14px; border-radius:8px; font-family:inherit;
+  font-weight:700; letter-spacing:0
+}
+#editor-debug .close-x:hover{background:rgba(255,255,255,.2)}
+#editor-debug .meta{
+  font-size:13px; color:#8b98a8; margin-bottom:12px; padding-bottom:12px;
+  border-bottom:1px solid rgba(255,255,255,.1)
+}
+#editor-debug .summary{
+  font-size:17px; font-weight:800; padding:12px 16px; border-radius:10px; margin-bottom:16px;
+  letter-spacing:.5px
+}
+#editor-debug .summary.ok{background:rgba(56,239,125,.14); color:#38ef7d; border:1px solid rgba(56,239,125,.5)}
+#editor-debug .summary.fail{background:rgba(255,85,102,.16); color:#ff5566; border:1px solid rgba(255,85,102,.6)}
+#editor-debug .summary.warn{background:rgba(255,184,77,.14); color:#ffb84d; border:1px solid rgba(255,184,77,.5)}
+#editor-debug .row{
+  display:flex; align-items:flex-start; gap:10px; padding:8px 12px; border-radius:8px;
+  margin-bottom:6px; word-break:break-all; font-size:14px
+}
+#editor-debug .row.ok{background:rgba(56,239,125,.06); border-left:4px solid #38ef7d}
+#editor-debug .row.fail{background:rgba(255,85,102,.1); border-left:4px solid #ff5566; color:#ffb0b8}
+#editor-debug .row.warn{background:rgba(255,184,77,.08); border-left:4px solid #ffb84d; color:#ffddaa}
+#editor-debug .row.info{background:rgba(0,198,255,.07); border-left:4px solid #00c6ff; color:#a8d8ff}
+#editor-debug .badge{
+  display:inline-block; min-width:62px; padding:2px 10px; border-radius:6px; font-size:12px;
+  font-weight:900; text-align:center; letter-spacing:.5px; flex-shrink:0
+}
+#editor-debug .row.ok .badge{background:#38ef7d; color:#04220f}
+#editor-debug .row.fail .badge{background:#ff5566; color:#fff}
+#editor-debug .row.warn .badge{background:#ffb84d; color:#3a2400}
+#editor-debug .row.info .badge{background:#00c6ff; color:#001d33}
+#editor-debug .msg{flex:1}
+#editor-debug .url{color:#00c6ff; font-size:12px; opacity:.9; margin-top:2px; text-decoration:underline; word-break:break-all}
+#editor-debug .hint{
+  margin-top:16px; padding:14px 18px; background:rgba(255,215,0,.1);
+  border:1px solid rgba(255,215,0,.4); border-radius:10px; color:#ffe680; font-size:14px;
+  font-family:'Segoe UI',Tahoma,sans-serif; line-height:1.55
+}
+#editor-debug .hint b{color:#fff}
+#editor-debug .hint code{background:rgba(0,0,0,.5); padding:2px 7px; border-radius:5px; color:#a8d8ff}
+
+#ed-debug-toggle{font-size:10px;padding:6px;opacity:.7;margin-top:6px}
+
 #editor-panel{position:absolute;top:70px;right:20px;width:300px;max-height:calc(100vh - 100px);
   z-index:60;background:rgba(13,18,26,.94);backdrop-filter:blur(16px);border:1px solid rgba(0,198,255,.25);
   border-radius:16px;padding:14px;box-sizing:border-box;overflow-y:auto;display:none;
@@ -146,6 +210,8 @@ body.editor #ed-alt-btns{display:flex}
   #ed-joystick-knob{width:44px;height:44px;top:43px;left:43px}
   #ed-alt-btns{bottom:30px;right:24px;gap:12px}
   #ed-alt-btns button{width:64px;height:64px;font-size:22px}
+  #editor-debug{font-size:13px; padding:16px}
+  #editor-debug h2{font-size:20px}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -208,9 +274,22 @@ body.editor #ed-alt-btns{display:flex}
 
 <button id="editor-toggle">✎ SCENE EDITOR</button>
 
+<!-- ============ BIG DEBUG PANEL ============ -->
+<div id="editor-debug">
+  <h2>
+    <span id="ed-debug-title">LOADING…</span>
+    <button class="close-x" id="ed-debug-close">HIDE</button>
+  </h2>
+  <div class="meta" id="ed-debug-meta"></div>
+  <div id="ed-debug-summary"></div>
+  <div id="ed-debug-log"></div>
+  <div class="hint" id="ed-debug-hint"></div>
+</div>
+
 <div id="editor-panel">
   <h4>Assets Folder</h4>
   <button class="ed-btn" id="ed-scan">⟳ Rescan assets/</button>
+  <button class="ed-btn" id="ed-debug-toggle">🐞 Toggle Debug Panel</button>
   <div id="ed-status">Idle</div>
   <div class="ed-list" id="ed-remote"><div class="ed-empty">Opening editor will scan automatically</div></div>
 
@@ -814,6 +893,122 @@ window.sellAllFish = function () {
     money += earned; inventory = []; saveGame(); openSell(); showAlert(`Sold for $${earned.toLocaleString()}!`, '#38ef7d');
 };
 
+// =====================================================================
+//  DEBUG PANEL
+// =====================================================================
+const debugState = {
+  visible: true,
+  modelName: '',
+  events: [],           // { type:'ok'|'fail'|'warn'|'info', badge, msg, url }
+  texturesOk: 0,
+  texturesFail: 0,
+  meshes: 0,
+  materials: 0
+};
+
+function dbgReset(name) {
+  debugState.modelName = name || '';
+  debugState.events = [];
+  debugState.texturesOk = 0;
+  debugState.texturesFail = 0;
+  debugState.meshes = 0;
+  debugState.materials = 0;
+  renderDebug();
+}
+
+function dbg(type, msg, url) {
+  const badges = { ok: 'OK', fail: 'FAIL', warn: 'WARN', info: 'INFO' };
+  debugState.events.push({ type, badge: badges[type] || type, msg, url: url || '' });
+  renderDebug();
+}
+
+function renderDebug() {
+  const panel = $('editor-debug');
+  if (!debugState.visible) { panel.style.display = 'none'; return; }
+  if (!editorMode) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const title = $('ed-debug-title');
+  const meta = $('ed-debug-meta');
+  const summary = $('ed-debug-summary');
+  const log = $('ed-debug-log');
+  const hint = $('ed-debug-hint');
+
+  const failCount = debugState.events.filter(e => e.type === 'fail').length;
+  const warnCount = debugState.events.filter(e => e.type === 'warn').length;
+
+  let titleText, titleClass;
+  if (failCount > 0) { titleText = '❌ ' + failCount + ' PROBLEM' + (failCount>1?'S':''); titleClass='status-fail'; }
+  else if (warnCount > 0) { titleText = '⚠ ' + warnCount + ' WARNING' + (warnCount>1?'S':''); titleClass='status-warn'; }
+  else if (debugState.events.length === 0) { titleText = 'LOADING…'; titleClass='status-warn'; }
+  else { titleText = '✅ ALL GOOD'; titleClass='status-ok'; }
+  title.textContent = titleText;
+  title.className = titleClass;
+
+  meta.textContent = debugState.modelName
+    ? `Model: ${debugState.modelName} · ${debugState.meshes} mesh(es) · ${debugState.materials} material(s) · ${debugState.texturesOk} texture(s) OK · ${debugState.texturesFail} failed`
+    : 'No model loaded yet';
+
+  // Summary line — the big verdict
+  let sumClass, sumText;
+  if (failCount > 0) {
+    sumClass = 'fail';
+    sumText = 'Your model is showing PINK because ' + failCount + ' texture(s) failed to load. Scroll down for the exact URLs.';
+  } else if (debugState.texturesOk === 0 && debugState.meshes > 0) {
+    sumClass = 'warn';
+    sumText = 'Model has ' + debugState.meshes + ' mesh(es) but ZERO textures. It will be tinted a flat color. Check that you uploaded the .png/.jpg/.mtl files next to the model.';
+  } else if (debugState.texturesOk > 0) {
+    sumClass = 'ok';
+    sumText = '✅ ' + debugState.texturesOk + ' texture(s) loaded successfully. Model should render correctly.';
+  } else {
+    sumClass = 'warn';
+    sumText = 'Waiting for model…';
+  }
+  summary.className = 'summary ' + sumClass;
+  summary.textContent = sumText;
+
+  // Event log
+  log.innerHTML = '';
+  debugState.events.slice(-40).forEach(ev => {
+    const row = document.createElement('div');
+    row.className = 'row ' + ev.type;
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = ev.badge;
+    const msg = document.createElement('span');
+    msg.className = 'msg';
+    msg.textContent = ev.msg;
+    if (ev.url) {
+      const u = document.createElement('div');
+      u.className = 'url';
+      u.textContent = ev.url;
+      msg.appendChild(u);
+    }
+    row.appendChild(badge);
+    row.appendChild(msg);
+    log.appendChild(row);
+  });
+
+  // Hint — the "why" for pink
+  if (failCount > 0) {
+    hint.innerHTML = `<b>Why pink?</b> Three.js shows a solid pink/magenta color whenever a texture fails to load. ` +
+      `Look at the FAIL rows above — those URLs are what your model tried to fetch and got a 404 or CORS error. ` +
+      `<b>Fix:</b> go to your GitHub repo, open the zip you downloaded from Poly Pizza, and upload <b>every file inside it</b> ` +
+      `(the .fbx/.obj/.glb AND all .png/.jpg/.mtl files) into your <code>assets/</code> folder. Then <code>⟳ Rescan</code> and reload.`;
+  } else if (debugState.meshes > 0 && debugState.texturesOk === 0) {
+    hint.innerHTML = `<b>No textures found.</b> The model loaded as geometry only — the .fbx/.obj has no baked-in colors and there's no .mtl or image alongside it. ` +
+      `Check the original zip: if it contained .png/.jpg files, upload them to <code>assets/</code>. If it didn't, the model is untextured and will always render as a solid color.`;
+  } else {
+    hint.innerHTML = `Everything looks normal. If the model is still wrong, hide this panel and look for other issues (very large/small scale, wrong orientation, etc).`;
+  }
+}
+
+$('ed-debug-close').onclick = () => { debugState.visible = false; renderDebug(); };
+$('ed-debug-toggle').onclick = () => { debugState.visible = !debugState.visible; renderDebug(); };
+
+// =====================================================================
+//  EDITOR
+// =====================================================================
 let editorMode = false;
 let editorControl = null;
 let editorModels = [];
@@ -839,28 +1034,26 @@ editorControl.addEventListener('objectChange', () => {
 editorControl.addEventListener('mouseDown', () => { editorGizmoDragging = true; });
 editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDragging = false, 0); });
 
-// =====================================================================
-//  LOADING MANAGER — resolves relative texture paths against the asset folder
-// =====================================================================
+// Loading manager with texture tracking
 const assetLoadingManager = new THREE.LoadingManager();
 let currentAssetBaseURL = '';
 
 assetLoadingManager.setURLModifier(url => {
     if (!url) return url;
-    if (/^(https?|data|blob):/i.test(url)) return url;
+    if (/^(https?|data|blob):/i.test(url)) { dbg('info', 'Texture request (absolute)', url); return url; }
     if (!currentAssetBaseURL) return url;
     let resolved;
     try { resolved = new URL(url, currentAssetBaseURL).href; }
     catch (e) { resolved = currentAssetBaseURL + url.replace(/^\.?\/+/, ''); }
-    console.log('[editor] texture:', url, '→', resolved);
+    dbg('info', 'Texture resolving: "' + url + '"', resolved);
     return resolved;
 });
 
 assetLoadingManager.onError = url => {
-    console.warn('[editor] FAILED to load:', url);
+  debugState.texturesFail++;
+  dbg('fail', 'Could not load texture (404 / CORS / bad path):', url);
 };
 
-// Draco + KTX2 for compressed GLBs
 const dracoLoader = new THREE.DRACOLoader();
 dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
 
@@ -876,6 +1069,8 @@ function getKTX2Loader() {
 
 function editorLoadModel(fileInfo) {
     const ext = (fileInfo.ext || '').toLowerCase();
+    dbgReset(fileInfo.name);
+    dbg('info', 'Starting load · ext=' + ext + ' · URL below', fileInfo.url);
     if (ext === 'obj') return editorLoadOBJ(fileInfo.url, fileInfo.name, fileInfo.path);
     if (ext === 'fbx') return editorLoadFBX(fileInfo.url, fileInfo.name, fileInfo.path);
     return editorLoadGLB(fileInfo.url, fileInfo.name, fileInfo.path);
@@ -884,13 +1079,14 @@ function editorLoadModel(fileInfo) {
 function editorLoadGLB(url, name, assetPath) {
     editorToast('Loading ' + name + '…');
     currentAssetBaseURL = url.substring(0, url.lastIndexOf('/') + 1);
+    dbg('info', 'Asset folder (for textures):', currentAssetBaseURL);
     const loader = new THREE.GLTFLoader(assetLoadingManager);
     try { loader.setDRACOLoader(dracoLoader); } catch (e) {}
     try { loader.setKTX2Loader(getKTX2Loader()); } catch (e) {}
     loader.load(url,
-        gltf => finalizeModel(gltf.scene, name, assetPath, url, false),
+        gltf => { dbg('ok', 'GLB parsed OK'); finalizeModel(gltf.scene, name, assetPath, url, false); },
         undefined,
-        err => { console.error(err); editorToast('Failed to load ' + name); }
+        err => { console.error(err); dbg('fail', 'GLB failed to parse', url); editorToast('Failed to load ' + name); }
     );
 }
 
@@ -900,16 +1096,18 @@ function editorLoadOBJ(url, name, assetPath) {
     const baseURL = url.substring(0, slash + 1);
     const objFilename = url.substring(slash + 1);
     const mtlFilename = objFilename.replace(/\.obj(\?.*)?$/i, '.mtl$1');
-
     currentAssetBaseURL = baseURL;
+    dbg('info', 'Asset folder (for textures):', baseURL);
+    dbg('info', 'Looking for MTL file:', baseURL + mtlFilename);
 
     const loadPlain = () => {
+        dbg('warn', 'Loading OBJ without MTL — colors will be default');
         const objLoader = new THREE.OBJLoader(assetLoadingManager);
         objLoader.setPath(baseURL);
         objLoader.load(objFilename,
-            obj => finalizeModel(obj, name, assetPath, url, false),
+            obj => { dbg('ok', 'OBJ parsed (no MTL)'); finalizeModel(obj, name, assetPath, url, false); },
             undefined,
-            err => { console.error(err); editorToast('Failed to load ' + name); }
+            err => { console.error(err); dbg('fail', 'OBJ parse failed', url); editorToast('Failed to load ' + name); }
         );
     };
 
@@ -917,18 +1115,19 @@ function editorLoadOBJ(url, name, assetPath) {
     mtlLoader.setPath(baseURL);
     mtlLoader.load(mtlFilename,
         mtl => {
+            dbg('ok', 'MTL file found and parsed');
             try { mtl.preload(); } catch (e) { console.warn('MTL preload failed', e); }
             const objLoader = new THREE.OBJLoader(assetLoadingManager);
             objLoader.setPath(baseURL);
             objLoader.setMaterials(mtl);
             objLoader.load(objFilename,
-                obj => finalizeModel(obj, name, assetPath, url, true),
+                obj => { dbg('ok', 'OBJ parsed (with MTL)'); finalizeModel(obj, name, assetPath, url, true); },
                 undefined,
-                err => { console.warn('OBJ w/ MTL failed, retrying plain', err); loadPlain(); }
+                err => { console.warn('OBJ w/ MTL failed, retrying plain', err); dbg('warn', 'OBJ w/ MTL failed, falling back to plain'); loadPlain(); }
             );
         },
         undefined,
-        () => { console.log('[editor] no MTL — loading plain OBJ'); loadPlain(); }
+        () => { dbg('warn', 'No MTL file found in assets folder — model will have no texture'); loadPlain(); }
     );
 }
 
@@ -936,34 +1135,21 @@ function editorLoadFBX(url, name, assetPath) {
     editorToast('Loading FBX ' + name + '…');
     const slash = url.lastIndexOf('/');
     currentAssetBaseURL = url.substring(0, slash + 1);
+    dbg('info', 'Asset folder (for textures):', currentAssetBaseURL);
 
     const loader = new THREE.FBXLoader(assetLoadingManager);
     loader.load(url,
-        fbx => {
-            fbx.traverse(o => {
-                if (!o.isMesh || !o.material) return;
-                const mats = Array.isArray(o.material) ? o.material : [o.material];
-                mats.forEach(m => {
-                    console.log('[editor] FBX material:', m.name,
-                        '| color:', m.color ? '#' + m.color.getHexString() : 'none',
-                        '| map:', m.map ? (m.map.image ? 'OK ' + m.map.image.width + '×' + m.map.image.height : 'PENDING') : 'none');
-                });
-            });
-            finalizeModel(fbx, name, assetPath, url, false);
-        },
+        fbx => { dbg('ok', 'FBX parsed OK'); finalizeModel(fbx, name, assetPath, url, false); },
         undefined,
-        err => { console.error(err); editorToast('Failed to load ' + name); }
+        err => { console.error(err); dbg('fail', 'FBX failed to parse', url); editorToast('Failed to load ' + name); }
     );
 }
 
-// =====================================================================
-//  FINALIZE — fixes white materials, tints untextured meshes, tunes Phong
-// =====================================================================
 function finalizeModel(obj, name, assetPath, url, withMtl) {
     let meshCount = 0;
-    let mapCount = 0;
-    const tintPalette = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da, 0xfcbad3, 0xa8d8ea];
-    let tintIdx = 0;
+    let matCount = 0;
+    let matWithMapCount = 0;
+    const seenTextures = new Set();
 
     obj.traverse(o => {
         if (!o.isMesh && !o.isLine && !o.isPoints) return;
@@ -976,44 +1162,80 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
             const m0 = o.material;
             const mats = Array.isArray(m0) ? m0 : (m0 ? [m0] : []);
             mats.forEach(m => { m.vertexColors = true; m.needsUpdate = true; });
+            dbg('info', 'Mesh has vertex colors enabled: ' + (o.name || '(unnamed)'));
         }
 
-        if (o.material) {
-            const mats = Array.isArray(o.material) ? o.material : [o.material];
-            mats.forEach(m => {
-                m.side = THREE.DoubleSide;
+        if (!o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+            matCount++;
+            m.side = THREE.DoubleSide;
 
-                if (m.map) {
-                    if (m.map.image && m.map.image.crossOrigin === undefined) m.map.image.crossOrigin = 'anonymous';
-                    m.map.anisotropy = 8;
-                    m.map.encoding = THREE.sRGBEncoding;
-                    m.map.needsUpdate = true;
-                    mapCount++;
-                }
-                if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
-                if (m.alphaMap) m.alphaMap.needsUpdate = true;
+            if (m.map) {
+                matWithMapCount++;
+                const img = m.map.image;
+                const src = (img && img.src) || (m.map.source && m.map.source.data && m.map.source.data.src) || '(unknown source)';
 
-                if (m.isMeshPhongMaterial) {
-                    m.shininess = 20;
-                    if (m.specular && m.specular.isColor) m.specular.setHex(0x111111);
+                // If we've already counted this texture, skip
+                const dedupKey = m.map.uuid;
+                if (!seenTextures.has(dedupKey)) {
+                    seenTextures.add(dedupKey);
+
+                    // Attach load/error callbacks to know when texture resolves
+                    if (img && img instanceof HTMLImageElement) {
+                        if (img.complete && img.naturalWidth > 0) {
+                            debugState.texturesOk++;
+                            dbg('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight + ' · material "' + (m.name||'unnamed') + '"', img.src);
+                        } else {
+                            img.addEventListener('load', () => {
+                                debugState.texturesOk++;
+                                dbg('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight, img.src);
+                                renderDebug();
+                            });
+                            img.addEventListener('error', () => {
+                                debugState.texturesFail++;
+                                dbg('fail', 'Texture image failed to load', img.src);
+                                renderDebug();
+                            });
+                            dbg('info', 'Texture still loading… material "' + (m.name||'unnamed') + '"', src);
+                        }
+                    } else if (img && img.width > 0) {
+                        debugState.texturesOk++;
+                        dbg('ok', 'Texture loaded ' + img.width + '×' + img.height + ' · material "' + (m.name||'unnamed') + '"', src);
+                    } else {
+                        debugState.texturesFail++;
+                        dbg('fail', 'Material references a texture but image is empty/missing · material "' + (m.name||'unnamed') + '"', src);
+                    }
                 }
-                if (!m.map && (!m.color || m.color.getHex() === 0xffffff || m.color.getHex() === 0x000000)) {
-                    m.color.setHex(tintPalette[tintIdx++ % tintPalette.length]);
-                }
-                m.visible = true;
-                m.needsUpdate = true;
-            });
-        }
+
+                m.map.anisotropy = 8;
+                m.map.encoding = THREE.sRGBEncoding;
+                m.map.needsUpdate = true;
+            } else {
+                dbg('warn', 'Material "' + (m.name||'unnamed') + '" has NO texture (color-only) · color #' + (m.color ? m.color.getHexString() : '??????'));
+            }
+
+            if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
+            if (m.alphaMap) m.alphaMap.needsUpdate = true;
+
+            if (m.isMeshPhongMaterial) {
+                m.shininess = 20;
+                if (m.specular && m.specular.isColor) m.specular.setHex(0x111111);
+            }
+            m.visible = true;
+            m.needsUpdate = true;
+        });
     });
 
+    debugState.meshes = meshCount;
+    debugState.materials = matCount;
+
     if (meshCount === 0) {
-        console.warn('[editor] ' + name + ': no meshes/lines/points');
-        editorToast(name + ': no geometry found');
-    } else if (mapCount === 0) {
-        console.warn('[editor] ' + name + ': 0 textures loaded — files probably missing from assets/');
-        editorToast(name + ': no textures found (tinted)');
+        dbg('fail', 'Model has NO meshes, lines, or points');
+    } else if (matWithMapCount === 0) {
+        dbg('warn', 'All ' + matCount + ' material(s) have NO textures — will render as flat colors. Did you upload the .png/.jpg/.mtl files?');
     } else {
-        console.log('[editor] ' + name + ': ' + meshCount + ' mesh(es), ' + mapCount + ' texture(s) OK');
+        dbg('ok', 'Model finalized: ' + meshCount + ' mesh(es), ' + matCount + ' material(s), ' + matWithMapCount + ' with textures');
     }
 
     obj.name = name;
@@ -1024,12 +1246,12 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    console.log('[editor] ' + name + ' size =', [size.x, size.y, size.z], 'maxDim =', maxDim);
+    dbg('info', 'Size: ' + [size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2)].join(' × ') + ' · max = ' + maxDim.toFixed(2));
 
     if (isFinite(maxDim) && maxDim > 0 && (maxDim > 200 || maxDim < 0.02)) {
         const factor = 2 / maxDim;
         obj.scale.multiplyScalar(factor);
-        editorToast(name + ' auto-scaled ×' + factor.toFixed(2));
+        dbg('warn', 'Auto-scaled by ×' + factor.toFixed(3) + ' (was too ' + (maxDim > 200 ? 'big' : 'small') + ')');
     }
 
     const box2 = new THREE.Box3().setFromObject(obj);
@@ -1038,6 +1260,7 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     editorModels.push({ name, assetPath, url, object: obj });
     refreshEditorSceneList();
     editorSelect(obj);
+    renderDebug();
     editorToast('Loaded: ' + name + (withMtl ? ' (MTL)' : ''));
 }
 
@@ -1050,14 +1273,9 @@ function detectRepoFromURL() {
     if (m && path[0]) return { owner: m[1], repo: path[0] };
     return null;
 }
-
 function autoFillRepo() {
     const det = detectRepoFromURL();
-    if (det) {
-        const r = $('ed-repo');
-        if (!r.value) r.value = `${det.owner}/${det.repo}`;
-        return `${det.owner}/${det.repo}`;
-    }
+    if (det) { const r = $('ed-repo'); if (!r.value) r.value = `${det.owner}/${det.repo}`; return `${det.owner}/${det.repo}`; }
     return null;
 }
 
@@ -1065,23 +1283,12 @@ async function editorScanRepo(silent) {
     let raw = $('ed-repo').value.trim();
     if (!raw) {
         raw = autoFillRepo() || '';
-        if (!raw) {
-            if (!silent) edStatus('Not on GitHub Pages — open Advanced to type owner/repo', '#ff5566');
-            return;
-        }
+        if (!raw) { if (!silent) edStatus('Not on GitHub Pages — open Advanced to type owner/repo', '#ff5566'); return; }
     }
-    raw = raw
-        .replace(/^git@github\.com:/, '')
-        .replace(/^https?:\/\/(www\.)?github\.com\//, '')
-        .replace(/\.git$/, '')
-        .replace(/^\/+|\/+$/g, '');
+    raw = raw.replace(/^git@github\.com:/, '').replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/\.git$/, '').replace(/^\/+|\/+$/g, '');
     const parts = raw.split('/');
     if (parts.length > 2) raw = parts[0] + '/' + parts[1];
-
-    if (!raw.includes('/')) {
-        if (!silent) edStatus('Enter as owner/repo', '#ff5566');
-        return;
-    }
+    if (!raw.includes('/')) { if (!silent) edStatus('Enter as owner/repo', '#ff5566'); return; }
 
     const branch = $('ed-branch').value.trim() || 'main';
     const folder = $('ed-folder').value.trim().replace(/^\/+|\/+$/g, '') || 'assets';
@@ -1281,7 +1488,6 @@ $('ed-advanced-toggle').onclick = () => {
 $('ed-url-add').onclick = () => {
     const raw = $('ed-url').value.trim();
     if (!raw) return;
-
     let url = raw;
     let name = raw.split('/').pop().replace(/\.(glb|gltf|obj|fbx)(\?.*)?$/i, '');
     let ext = '';
@@ -1304,6 +1510,8 @@ $('ed-url-add').onclick = () => {
     }
 
     if (!ext) ext = 'glb';
+    dbgReset(name);
+    dbg('info', 'Direct load · ext=' + ext + ' · URL below', url);
     if (ext === 'obj') editorLoadOBJ(url, name, raw);
     else if (ext === 'fbx') editorLoadFBX(url, name, raw);
     else editorLoadGLB(url, name, raw);
@@ -1324,24 +1532,17 @@ function edUpdateJoy(t) {
     const dist = Math.hypot(dx, dy);
     if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
     edJoyKnob.style.transform = `translate(${dx}px,${dy}px)`;
-    edJoyVec.x = dx / max;
-    edJoyVec.y = dy / max;
+    edJoyVec.x = dx / max; edJoyVec.y = dy / max;
 }
 edJoyZone.addEventListener('touchstart', e => {
-    if (edJoyId === null) {
-        edJoyId = e.changedTouches[0].identifier;
-        edUpdateJoy(e.changedTouches[0]);
-        e.preventDefault();
-    }
+    if (edJoyId === null) { edJoyId = e.changedTouches[0].identifier; edUpdateJoy(e.changedTouches[0]); e.preventDefault(); }
 }, { passive: false });
 edJoyZone.addEventListener('touchmove', e => {
     for (const t of e.changedTouches) if (t.identifier === edJoyId) { edUpdateJoy(t); e.preventDefault(); }
 }, { passive: false });
 const edEndJoy = e => {
     for (const t of e.changedTouches) if (t.identifier === edJoyId) {
-        edJoyId = null;
-        edJoyKnob.style.transform = 'translate(0px,0px)';
-        edJoyVec = { x: 0, y: 0 };
+        edJoyId = null; edJoyKnob.style.transform = 'translate(0px,0px)'; edJoyVec = { x: 0, y: 0 };
     }
 };
 edJoyZone.addEventListener('touchend', edEndJoy);
@@ -1351,20 +1552,15 @@ function edBindHold(el, setter) {
     const on = e => { e.preventDefault(); setter(true); };
     const off = e => { e.preventDefault(); setter(false); };
     el.addEventListener('touchstart', on, { passive: false });
-    el.addEventListener('touchend', off);
-    el.addEventListener('touchcancel', off);
-    el.addEventListener('mousedown', on);
-    el.addEventListener('mouseup', off);
-    el.addEventListener('mouseleave', off);
+    el.addEventListener('touchend', off); el.addEventListener('touchcancel', off);
+    el.addEventListener('mousedown', on); el.addEventListener('mouseup', off); el.addEventListener('mouseleave', off);
 }
 edBindHold($('ed-up'), v => edFlyUp = v);
 edBindHold($('ed-down'), v => edFlyDown = v);
 
 function edResetJoystick() {
-    edJoyId = null;
-    edJoyVec = { x: 0, y: 0 };
-    edFlyUp = false;
-    edFlyDown = false;
+    edJoyId = null; edJoyVec = { x: 0, y: 0 };
+    edFlyUp = false; edFlyDown = false;
     edJoyKnob.style.transform = 'translate(0px,0px)';
 }
 
@@ -1384,13 +1580,9 @@ $('editor-toggle').onclick = () => {
         if (currentRodModel) currentRodModel.visible = false;
         editorControl.enabled = true;
         editorToast('Editor ON');
-
-        if (!autoScanDone) {
-            autoScanDone = true;
-            editorScanRepo(true);
-        } else if (!editorRemoteFiles.length) {
-            editorScanRepo(true);
-        }
+        renderDebug();
+        if (!autoScanDone) { autoScanDone = true; editorScanRepo(true); }
+        else if (!editorRemoteFiles.length) editorScanRepo(true);
     } else {
         camera.position.copy(savedCam.pos);
         camera.quaternion.copy(savedCam.quat);
@@ -1400,6 +1592,7 @@ $('editor-toggle').onclick = () => {
         editorControl.enabled = false;
         editorControl.visible = false;
         edResetJoystick();
+        renderDebug();
         editorToast('Editor OFF');
     }
 };
@@ -1429,19 +1622,14 @@ function updateEditorCamera(dt) {
     const speed = (editorKeys.shift ? 40 : 14) * dt;
     const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
     const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
-
     let fwd = 0, side = 0;
     if (editorKeys.w) fwd += 1;
     if (editorKeys.s) fwd -= 1;
     if (editorKeys.d) side += 1;
     if (editorKeys.a) side -= 1;
-    if (edJoyVec.x !== 0 || edJoyVec.y !== 0) {
-        side += edJoyVec.x;
-        fwd  += -edJoyVec.y;
-    }
+    if (edJoyVec.x !== 0 || edJoyVec.y !== 0) { side += edJoyVec.x; fwd += -edJoyVec.y; }
     if (fwd !== 0)  camera.position.addScaledVector(dir,   fwd  * speed);
     if (side !== 0) camera.position.addScaledVector(right, side * speed);
-
     let vert = 0;
     if (editorKeys.space) vert += 1;
     if (editorKeys.c)     vert -= 1;
@@ -1474,9 +1662,7 @@ canvasEl.addEventListener('pointerup', e => {
         let o = hits[0].object;
         while (o.parent && !editorModels.some(m => m.object === o)) o = o.parent;
         editorSelect(o);
-    } else {
-        editorSelect(null);
-    }
+    } else { editorSelect(null); }
 });
 
 $('ed-export').onclick = () => {
@@ -1495,8 +1681,7 @@ $('ed-export').onclick = () => {
 };
 $('ed-close-modal').onclick = () => $('editor-modal').classList.remove('on');
 $('ed-copy').onclick = () => {
-    const ta = $('ed-export-text');
-    ta.select();
+    const ta = $('ed-export-text'); ta.select();
     try { document.execCommand('copy'); editorToast('Copied!'); }
     catch (e) { navigator.clipboard.writeText(ta.value).then(() => editorToast('Copied!')); }
 };
