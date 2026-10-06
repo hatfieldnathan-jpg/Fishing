@@ -153,6 +153,8 @@ body.editor #ed-alt-btns{display:flex}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/KTX2Loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 </head>
@@ -382,6 +384,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 const HORIZON = 0xcfe4f2;
 const scene = new THREE.Scene();
@@ -836,39 +839,40 @@ editorControl.addEventListener('objectChange', () => {
 editorControl.addEventListener('mouseDown', () => { editorGizmoDragging = true; });
 editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDragging = false, 0); });
 
-const gltfLoader = new THREE.GLTFLoader();
-
 // =====================================================================
-//  TEXTURE URL RESOLVER
-//  FBX/OBJ files reference external images by relative name. This manager
-//  rewrites those requests so they hit the asset's actual GitHub folder.
+//  LOADING MANAGER — resolves relative texture paths against the asset folder
 // =====================================================================
 const assetLoadingManager = new THREE.LoadingManager();
 let currentAssetBaseURL = '';
 
 assetLoadingManager.setURLModifier(url => {
     if (!url) return url;
-    // Absolute URLs and data URIs pass through untouched
-    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (/^(https?|data|blob):/i.test(url)) return url;
     if (!currentAssetBaseURL) return url;
-
-    // Decode URI components (FBX sometimes stores "texture%20name.png")
-    let clean = url.replace(/^\.?\/+/, '');
-    try { clean = decodeURIComponent(clean); } catch (e) {}
-
-    // Strip any directory prefix — we only want the bare filename
-    const filename = clean.split('/').pop();
-
-    // Build the final URL relative to the model we're loading
-    const resolved = currentAssetBaseURL + encodeURIComponent(filename);
+    let resolved;
+    try { resolved = new URL(url, currentAssetBaseURL).href; }
+    catch (e) { resolved = currentAssetBaseURL + url.replace(/^\.?\/+/, ''); }
     console.log('[editor] texture:', url, '→', resolved);
     return resolved;
 });
 
-// Global onError so we can see texture 404s in the console
 assetLoadingManager.onError = url => {
     console.warn('[editor] FAILED to load:', url);
 };
+
+// Draco + KTX2 for compressed GLBs
+const dracoLoader = new THREE.DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+
+let ktx2Loader = null;
+function getKTX2Loader() {
+    if (!ktx2Loader) {
+        ktx2Loader = new THREE.KTX2Loader();
+        ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/basis/');
+        ktx2Loader.detectSupport(renderer);
+    }
+    return ktx2Loader;
+}
 
 function editorLoadModel(fileInfo) {
     const ext = (fileInfo.ext || '').toLowerCase();
@@ -879,11 +883,12 @@ function editorLoadModel(fileInfo) {
 
 function editorLoadGLB(url, name, assetPath) {
     editorToast('Loading ' + name + '…');
-    gltfLoader.load(url,
-        gltf => {
-            const obj = gltf.scene;
-            finalizeModel(obj, name, assetPath, url, false);
-        },
+    currentAssetBaseURL = url.substring(0, url.lastIndexOf('/') + 1);
+    const loader = new THREE.GLTFLoader(assetLoadingManager);
+    try { loader.setDRACOLoader(dracoLoader); } catch (e) {}
+    try { loader.setKTX2Loader(getKTX2Loader()); } catch (e) {}
+    loader.load(url,
+        gltf => finalizeModel(gltf.scene, name, assetPath, url, false),
         undefined,
         err => { console.error(err); editorToast('Failed to load ' + name); }
     );
@@ -895,49 +900,46 @@ function editorLoadOBJ(url, name, assetPath) {
     const baseURL = url.substring(0, slash + 1);
     const objFilename = url.substring(slash + 1);
     const mtlFilename = objFilename.replace(/\.obj(\?.*)?$/i, '.mtl$1');
-    const mtlURL = baseURL + mtlFilename;
 
-    // Point the loader at the right folder for textures referenced by the MTL
     currentAssetBaseURL = baseURL;
 
-    const tryPlain = () => {
+    const loadPlain = () => {
         const objLoader = new THREE.OBJLoader(assetLoadingManager);
-        objLoader.load(url, obj => finalizeModel(obj, name, assetPath, url, false), undefined, err => {
-            console.error(err);
-            editorToast('Failed to load ' + name);
-        });
+        objLoader.setPath(baseURL);
+        objLoader.load(objFilename,
+            obj => finalizeModel(obj, name, assetPath, url, false),
+            undefined,
+            err => { console.error(err); editorToast('Failed to load ' + name); }
+        );
     };
 
     const mtlLoader = new THREE.MTLLoader(assetLoadingManager);
-    mtlLoader.load(mtlURL,
+    mtlLoader.setPath(baseURL);
+    mtlLoader.load(mtlFilename,
         mtl => {
             try { mtl.preload(); } catch (e) { console.warn('MTL preload failed', e); }
             const objLoader = new THREE.OBJLoader(assetLoadingManager);
+            objLoader.setPath(baseURL);
             objLoader.setMaterials(mtl);
-            objLoader.load(url,
+            objLoader.load(objFilename,
                 obj => finalizeModel(obj, name, assetPath, url, true),
                 undefined,
-                err => {
-                    console.warn('OBJ failed with MTL, retrying plain', err);
-                    tryPlain();
-                }
+                err => { console.warn('OBJ w/ MTL failed, retrying plain', err); loadPlain(); }
             );
         },
         undefined,
-        () => { tryPlain(); }
+        () => { console.log('[editor] no MTL — loading plain OBJ'); loadPlain(); }
     );
 }
 
 function editorLoadFBX(url, name, assetPath) {
     editorToast('Loading FBX ' + name + '…');
-    // Remember the folder this FBX lives in so textures resolve correctly
     const slash = url.lastIndexOf('/');
     currentAssetBaseURL = url.substring(0, slash + 1);
 
     const loader = new THREE.FBXLoader(assetLoadingManager);
     loader.load(url,
         fbx => {
-            // Log what materials/textures actually landed
             fbx.traverse(o => {
                 if (!o.isMesh || !o.material) return;
                 const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -954,34 +956,49 @@ function editorLoadFBX(url, name, assetPath) {
     );
 }
 
+// =====================================================================
+//  FINALIZE — fixes white materials, tints untextured meshes, tunes Phong
+// =====================================================================
 function finalizeModel(obj, name, assetPath, url, withMtl) {
     let meshCount = 0;
+    let mapCount = 0;
+    const tintPalette = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da, 0xfcbad3, 0xa8d8ea];
+    let tintIdx = 0;
+
     obj.traverse(o => {
         if (!o.isMesh && !o.isLine && !o.isPoints) return;
         meshCount++;
         o.castShadow = true;
         o.receiveShadow = true;
         o.frustumCulled = false;
+
+        if (o.geometry && o.geometry.attributes && o.geometry.attributes.color) {
+            const m0 = o.material;
+            const mats = Array.isArray(m0) ? m0 : (m0 ? [m0] : []);
+            mats.forEach(m => { m.vertexColors = true; m.needsUpdate = true; });
+        }
+
         if (o.material) {
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
                 m.side = THREE.DoubleSide;
-                // Only force opaque when there's no alpha map — otherwise we'd break glass/leaves
-                if (!m.alphaMap && !m.transparent) {
-                    if (m.opacity !== undefined && m.opacity < 0.05) m.opacity = 1;
-                }
+
                 if (m.map) {
+                    if (m.map.image && m.map.image.crossOrigin === undefined) m.map.image.crossOrigin = 'anonymous';
                     m.map.anisotropy = 8;
                     m.map.encoding = THREE.sRGBEncoding;
                     m.map.needsUpdate = true;
+                    mapCount++;
                 }
+                if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
+                if (m.alphaMap) m.alphaMap.needsUpdate = true;
+
                 if (m.isMeshPhongMaterial) {
                     m.shininess = 20;
                     if (m.specular && m.specular.isColor) m.specular.setHex(0x111111);
                 }
-                // Only force white if there's no texture AND color is black
-                if (!m.map && m.color && m.color.getHex() === 0x000000) {
-                    m.color.setHex(0xcccccc);
+                if (!m.map && (!m.color || m.color.getHex() === 0xffffff || m.color.getHex() === 0x000000)) {
+                    m.color.setHex(tintPalette[tintIdx++ % tintPalette.length]);
                 }
                 m.visible = true;
                 m.needsUpdate = true;
@@ -990,8 +1007,13 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     });
 
     if (meshCount === 0) {
-        console.warn('[editor] ' + name + ' has no meshes/lines/points');
+        console.warn('[editor] ' + name + ': no meshes/lines/points');
         editorToast(name + ': no geometry found');
+    } else if (mapCount === 0) {
+        console.warn('[editor] ' + name + ': 0 textures loaded — files probably missing from assets/');
+        editorToast(name + ': no textures found (tinted)');
+    } else {
+        console.log('[editor] ' + name + ': ' + meshCount + ' mesh(es), ' + mapCount + ' texture(s) OK');
     }
 
     obj.name = name;
@@ -1001,17 +1023,13 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
 
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3());
-    const dims = [size.x, size.y, size.z];
-    const maxDim = Math.max(...dims);
-    console.log('[editor] ' + name + ' size =', dims, 'maxDim =', maxDim);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    console.log('[editor] ' + name + ' size =', [size.x, size.y, size.z], 'maxDim =', maxDim);
 
-    if (isFinite(maxDim) && maxDim > 0) {
-        if (maxDim > 200 || maxDim < 0.02) {
-            const factor = 2 / maxDim;
-            obj.scale.multiplyScalar(factor);
-            console.log('[editor] auto-scaled ' + name + ' ×' + factor.toFixed(3));
-            editorToast(name + ' auto-scaled ×' + factor.toFixed(2));
-        }
+    if (isFinite(maxDim) && maxDim > 0 && (maxDim > 200 || maxDim < 0.02)) {
+        const factor = 2 / maxDim;
+        obj.scale.multiplyScalar(factor);
+        editorToast(name + ' auto-scaled ×' + factor.toFixed(2));
     }
 
     const box2 = new THREE.Box3().setFromObject(obj);
@@ -1020,7 +1038,7 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     editorModels.push({ name, assetPath, url, object: obj });
     refreshEditorSceneList();
     editorSelect(obj);
-    editorToast('Loaded: ' + name + (withMtl ? ' (with MTL)' : ''));
+    editorToast('Loaded: ' + name + (withMtl ? ' (MTL)' : ''));
 }
 
 let editorRepoBase = null, editorRemoteFiles = [];
