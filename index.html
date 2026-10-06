@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Ultimate Fishing</title>
+<title>Ultimate Fishing + Scene Editor</title>
 <style>
 body,html{margin:0;padding:0;overflow:hidden;background:#5ca8ff;font-family:'Segoe UI',Tahoma,Verdana,sans-serif;user-select:none;touch-action:none}
 #game-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
@@ -45,10 +45,113 @@ body,html{margin:0;padding:0;overflow:hidden;background:#5ca8ff;font-family:'Seg
 .rarity-ExtraRare{color:#BA68C8;text-shadow:0 0 8px rgba(186,104,200,.5)}.rarity-Epic{color:#F06292;text-shadow:0 0 12px rgba(240,98,146,.6)}
 .rarity-Legendary{color:#FFD54F;text-shadow:0 0 15px rgba(255,213,79,.8)}.rarity-Exotic{color:#0ff;text-shadow:0 0 20px #0ff;font-weight:900;letter-spacing:1px}
 #alert-box{position:absolute;top:15%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);backdrop-filter:blur(5px);color:#fff;padding:15px 30px;border-radius:12px;font-size:18px;font-weight:bold;text-align:center;display:none;pointer-events:none;z-index:5;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 20px rgba(0,0,0,.5)}
+
+/* EDITOR */
+body.editor #joystick-zone,body.editor #action-btn,body.editor #hud,
+body.editor #crosshair,body.editor #interaction-msg{display:none!important}
+
+#editor-toggle{position:absolute;top:20px;right:20px;z-index:50;background:rgba(15,25,35,.7);
+  backdrop-filter:blur(12px);color:#fff;border:1px solid rgba(255,255,255,.18);padding:10px 18px;
+  border-radius:12px;font-weight:800;letter-spacing:1px;font-size:13px;cursor:pointer;pointer-events:auto;
+  transition:.15s;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#editor-toggle:hover{background:rgba(0,198,255,.35);border-color:#00c6ff}
+body.editor #editor-toggle{background:linear-gradient(135deg,#00c6ff,#0072ff);border-color:transparent;
+  box-shadow:0 0 22px rgba(0,198,255,.6)}
+
+#editor-panel{position:absolute;top:70px;right:20px;width:300px;max-height:calc(100vh - 100px);
+  z-index:60;background:rgba(13,18,26,.94);backdrop-filter:blur(16px);border:1px solid rgba(0,198,255,.25);
+  border-radius:16px;padding:14px;box-sizing:border-box;overflow-y:auto;display:none;
+  box-shadow:0 20px 50px rgba(0,0,0,.85);pointer-events:auto;color:#e6edf3;font-size:12px}
+body.editor #editor-panel{display:block}
+#editor-panel h4{margin:0 0 8px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#00c6ff}
+#editor-panel label{display:block;font-size:10px;color:#8b98a8;letter-spacing:.6px;margin:9px 0 4px;text-transform:uppercase}
+#editor-panel input{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:#fff;
+  padding:6px 8px;border-radius:7px;font-size:11.5px;font-family:inherit;outline:none;box-sizing:border-box}
+#editor-panel input:focus{border-color:#00c6ff}
+.ed-row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ed-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.ed-btn{width:100%;padding:9px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:11.5px;
+  background:rgba(255,255,255,.08);color:#e6edf3;border:1px solid rgba(255,255,255,.1);transition:.15s;margin-top:8px}
+.ed-btn:hover{background:rgba(255,255,255,.16)}
+.ed-btn.primary{background:linear-gradient(135deg,#11998e,#38ef7d);color:#04220f;border:none;
+  box-shadow:0 6px 18px rgba(56,239,125,.35);font-weight:900}
+.ed-btn.primary:hover{filter:brightness(1.1)}
+.ed-btn.danger{background:rgba(255,85,102,.16);border:1px solid #ff5566;color:#ff5566}
+.ed-btn.danger:hover{background:#ff5566;color:#fff}
+.ed-btn.mode{flex:1;margin-top:0}
+.ed-modes{display:flex;gap:5px;margin-bottom:6px}
+.ed-modes .ed-btn.on{background:linear-gradient(135deg,#00c6ff,#0072ff);color:#fff;border-color:transparent}
+.ed-list{margin-top:6px;max-height:170px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:9px}
+.ed-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);
+  cursor:pointer;font-size:11.5px}
+.ed-item:last-child{border-bottom:none}
+.ed-item:hover{background:rgba(255,255,255,.06)}
+.ed-item.sel{background:rgba(0,198,255,.18)}
+.ed-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-item .tag{opacity:.5;font-size:9px;margin-left:5px;letter-spacing:.5px}
+.ed-item .mini{background:none;border:none;color:#8b98a8;cursor:pointer;padding:2px 5px;border-radius:5px;font-size:12px}
+.ed-item .mini:hover{background:rgba(255,255,255,.14);color:#fff}
+.ed-item .mini.add{color:#38ef7d;font-weight:900}
+.ed-empty{font-size:11px;color:#8b98a8;padding:11px;text-align:center}
+#ed-status{font-size:10.5px;color:#8b98a8;margin-top:7px;min-height:13px}
+#ed-hint{font-size:10.5px;color:#8b98a8;line-height:1.55;margin-top:8px}
+#ed-hint kbd{background:rgba(255,255,255,.1);border-radius:3px;padding:0 4px;font-family:inherit;font-size:9.5px}
+.ed-sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0 10px}
+
+/* EDITOR MOBILE CONTROLS */
+#ed-joystick-zone{position:absolute;bottom:30px;left:30px;width:150px;height:150px;
+  background:rgba(0,198,255,.08);border-radius:50%;border:2px solid rgba(0,198,255,.35);
+  backdrop-filter:blur(8px);pointer-events:auto;display:none;z-index:70;touch-action:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.4), inset 0 0 30px rgba(0,198,255,.08)}
+#ed-joystick-knob{position:absolute;top:50px;left:50px;width:50px;height:50px;
+  background:radial-gradient(circle at 30% 30%, #4fd8ff, #0072ff);border-radius:50%;pointer-events:none;
+  box-shadow:0 6px 18px rgba(0,0,0,.6), 0 0 22px rgba(0,198,255,.6);
+  border:2px solid rgba(255,255,255,.5)}
+body.editor #ed-joystick-zone{display:block}
+
+#ed-alt-btns{position:absolute;bottom:40px;right:40px;display:none;flex-direction:column;gap:14px;
+  z-index:70;pointer-events:auto}
+body.editor #ed-alt-btns{display:flex}
+#ed-alt-btns button{width:74px;height:74px;border-radius:50%;
+  background:rgba(15,25,35,.78);border:2px solid rgba(0,198,255,.4);color:#fff;
+  font-size:26px;font-weight:900;cursor:pointer;backdrop-filter:blur(10px);
+  box-shadow:0 8px 22px rgba(0,0,0,.55), inset 0 0 12px rgba(0,198,255,.15);
+  touch-action:none;user-select:none;display:flex;align-items:center;justify-content:center;
+  transition:.1s;padding:0}
+#ed-alt-btns button:active{background:rgba(0,198,255,.55);border-color:#00c6ff;transform:scale(.94);
+  box-shadow:0 4px 12px rgba(0,198,255,.6)}
+
+#editor-modal{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(7px);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:24px}
+#editor-modal.on{display:flex}
+#editor-modal-box{width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:#0f1520;border:1px solid rgba(0,198,255,.3);border-radius:18px;padding:22px;
+  box-shadow:0 30px 80px rgba(0,0,0,.95);color:#e6edf3}
+#editor-modal-box h2{margin:0 0 5px;font-size:18px}
+#editor-modal-box p{margin:0 0 12px;color:#8b98a8;font-size:12px;line-height:1.5}
+#ed-export-text{flex:1;min-height:320px;resize:vertical;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.1);
+  color:#e6edf3;border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+  line-height:1.65;white-space:pre;overflow:auto;outline:none}
+.ed-modal-actions{display:flex;gap:10px;margin-top:14px}
+
+#ed-toast{position:fixed;top:76px;left:50%;transform:translate(-50%,-12px);z-index:300;
+  background:rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.15);color:#fff;padding:9px 20px;
+  border-radius:10px;font-size:12.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s}
+#ed-toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:640px){
+  #editor-panel{width:240px;font-size:11.5px;padding:12px}
+  #ed-joystick-zone{width:130px;height:130px;bottom:24px;left:20px}
+  #ed-joystick-knob{width:44px;height:44px;top:43px;left:43px}
+  #ed-alt-btns{bottom:30px;right:24px;gap:12px}
+  #ed-alt-btns button{width:64px;height:64px;font-size:22px}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<!-- NEW: GLTFLoader (must come after three.min.js) -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 </head>
 <body>
 
@@ -98,8 +201,103 @@ body,html{margin:0;padding:0;overflow:hidden;background:#5ca8ff;font-family:'Seg
     </div>
 </div>
 
+<button id="editor-toggle">✎ SCENE EDITOR</button>
+
+<div id="editor-panel">
+  <h4>GitHub Assets</h4>
+  <label>Repo (owner/name)</label>
+  <input id="ed-repo" placeholder="Vewerty/ultimate-fishing">
+  <div class="ed-row2" style="margin-top:6px">
+    <div><label>Branch</label><input id="ed-branch" value="main"></div>
+    <div><label>Folder</label><input id="ed-folder" value="assets"></div>
+  </div>
+  <button class="ed-btn" id="ed-scan">Scan Repo Folder</button>
+  <div id="ed-status"></div>
+  <div class="ed-list" id="ed-remote"><div class="ed-empty">Not scanned yet</div></div>
+
+  <label style="margin-top:14px">Direct URL / Local Path</label>
+  <div class="ed-row2">
+    <input id="ed-url" placeholder="assets/island.glb or boat.obj">
+    <button class="ed-btn" id="ed-url-add" style="margin-top:0">Load</button>
+  </div>
+
+  <div class="ed-sep"></div>
+  <h4>Transform Mode</h4>
+  <div class="ed-modes">
+    <button class="ed-btn mode on" data-mode="translate">Move</button>
+    <button class="ed-btn mode" data-mode="rotate">Rotate</button>
+    <button class="ed-btn mode" data-mode="scale">Scale</button>
+  </div>
+
+  <div class="ed-sep"></div>
+  <h4>Scene Objects (<span id="ed-count">0</span>)</h4>
+  <div class="ed-list" id="ed-scene"><div class="ed-empty">Nothing loaded</div></div>
+
+  <div class="ed-sep"></div>
+  <h4>Selected Object</h4>
+  <div id="ed-no-sel" style="color:#8b98a8;font-size:11px">Click a model to select it</div>
+  <div id="ed-prop-body" style="display:none">
+    <label>Name</label><input id="ed-name">
+    <label>Asset Path</label><input id="ed-path" readonly style="opacity:.65">
+    <label>Position (x, y, z)</label>
+    <div class="ed-row3">
+      <input id="ed-px" type="number" step="0.1"><input id="ed-py" type="number" step="0.1"><input id="ed-pz" type="number" step="0.1">
+    </div>
+    <label>Rotation ° (x, y, z)</label>
+    <div class="ed-row3">
+      <input id="ed-rx" type="number" step="5"><input id="ed-ry" type="number" step="5"><input id="ed-rz" type="number" step="5">
+    </div>
+    <label>Scale (x, y, z)</label>
+    <div class="ed-row3">
+      <input id="ed-sx" type="number" step="0.1"><input id="ed-sy" type="number" step="0.1"><input id="ed-sz" type="number" step="0.1">
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:9px;text-transform:none;letter-spacing:0;cursor:pointer;color:#e6edf3">
+      <input type="checkbox" id="ed-uniform" checked style="width:auto"> Uniform scale
+    </label>
+    <div class="ed-row2" style="margin-top:8px">
+      <button class="ed-btn" id="ed-focus" style="margin-top:0">Focus</button>
+      <button class="ed-btn danger" id="ed-del" style="margin-top:0">Delete</button>
+    </div>
+  </div>
+
+  <button class="ed-btn primary" id="ed-export" style="margin-top:14px">GET SCENE DATA</button>
+  <div id="ed-hint">
+    Supports <b>.glb</b> · <b>.gltf</b> · <b>.obj</b> (+ <b>.mtl</b> auto-loaded)<br>
+    <b>Desktop:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>Space</kbd>/<kbd>C</kbd> up/down · <kbd>Shift</kbd> boost · Drag to look<br>
+    <b>Mobile:</b> joystick to move · drag screen to look · ▲▼ buttons for up/down<br>
+    <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gizmo mode · <kbd>F</kbd> focus · <kbd>Del</kbd> remove
+  </div>
+</div>
+
+<div id="ed-joystick-zone"><div id="ed-joystick-knob"></div></div>
+<div id="ed-alt-btns">
+  <button id="ed-up" title="Fly up">▲</button>
+  <button id="ed-down" title="Fly down">▼</button>
+</div>
+
+<div id="editor-modal">
+  <div id="editor-modal-box">
+    <h2>Scene Data</h2>
+    <p>Paste this to the assistant — it lists every model's name, asset path, position, rotation and scale.</p>
+    <textarea id="ed-export-text" readonly></textarea>
+    <div class="ed-modal-actions">
+      <button class="ed-btn primary" id="ed-copy" style="margin-top:0">Copy to Clipboard</button>
+      <button class="ed-btn" id="ed-close-modal" style="margin-top:0">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="ed-toast"></div>
+
 <script>
-// --- FISH DATABASE ---
+// =====================================================================
+//  HELPER
+// =====================================================================
+const $ = id => document.getElementById(id);
+
+// =====================================================================
+//  FISH DATABASE
+// =====================================================================
 const rawFishData = [
 ['Anchovy','Common',10,'#c0c0c0','#aaa',0,[0.3,0.4,1.2],0.25],['Herring','Common',12,'#a8b8c8','#555',1,[0.4,0.5,1.1],0.3],
 ['Sardine','Common',12,'#8899aa','#fff',3,[0.3,0.4,1.0],0.25],['Minnow','Common',10,'#b8a898','#333',1,[0.3,0.4,1.0],0.2],
@@ -140,17 +338,16 @@ const rawFishData = [
 ['Galactic Angler','Exotic',7500,'#000','#ff00ff',2,[0.7,0.8,1.2],2.0],['Void Ray','Exotic',8000,'#111','#4b0082',3,[1.5,0.1,1.5],2.5],
 ['Nebula Dragonfish','Exotic',10000,'#ff1493','#00ffff',1,[0.4,0.5,2.2],3.0]
 ];
-const standardRarities = ['Common','Uncommon','Rare','ExtraRare','Epic','Legendary','Exotic'];
+const rarities = [
+    {id:'Common',name:'Common'},{id:'Uncommon',name:'Uncommon'},{id:'Rare',name:'Rare'},
+    {id:'ExtraRare',name:'Extra Rare'},{id:'Epic',name:'Epic'},{id:'Legendary',name:'Legendary'},{id:'Exotic',name:'Exotic'}
+];
 const fishDatabase = rawFishData.map(f => ({
     id: f[1], name: f[0], baseVal: f[2], c1: f[3], c2: f[4], pat: f[5], prop: f[6],
     scale: (f[1] === 'Common' || f[1] === 'Uncommon') ? f[7] * 8.25 : f[7]
 }));
 let fishIndex = {}; fishDatabase.forEach(f => fishIndex[f.name] = 0);
 let inventory = [], money = 0, totalCaughtCount = 0, currentRodIndex = 0;
-const rarities = [
-    {id:'Common',name:'Common'},{id:'Uncommon',name:'Uncommon'},{id:'Rare',name:'Rare'},
-    {id:'ExtraRare',name:'Extra Rare'},{id:'Epic',name:'Epic'},{id:'Legendary',name:'Legendary'},{id:'Exotic',name:'Exotic'}
-];
 const rods = [
     {id:'classic',name:'Classic',cost:0,minTier:0,maxTier:2,mainColor:0x8B4513,accent:0x222222,owned:true},
     {id:'magma',name:'Magma',cost:450,minTier:2,maxTier:4,mainColor:0x550000,accent:0xFF4500,owned:false},
@@ -159,7 +356,6 @@ const rods = [
     {id:'golden',name:'Golden',cost:150000,minTier:6,maxTier:6,mainColor:0xFFFF00,accent:0xFFD700,owned:false}
 ];
 
-// --- SAVE / LOAD ---
 const SAVE_KEY = 'ultimateFishingSaveLite';
 function saveGame() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify({money, inventory, fishIndex, totalCaughtCount, rodsOwned: rods.map(r => r.owned), currentRodIndex})); } catch (e) {}
@@ -178,9 +374,9 @@ function loadGame() {
 }
 loadGame();
 
-// =====================================================
-// THREE.JS
-// =====================================================
+// =====================================================================
+//  THREE SETUP
+// =====================================================================
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -197,7 +393,6 @@ const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerH
 camera.position.set(0, 2, 0);
 scene.add(camera);
 
-// Lighting
 const SUN_DIR = new THREE.Vector3(0.45, 0.55, -0.7).normalize();
 scene.add(new THREE.HemisphereLight(0xbfdcff, 0x8a7a5a, 0.75));
 const sun = new THREE.DirectionalLight(0xfff1d6, 1.9);
@@ -208,7 +403,6 @@ Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, n
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
 scene.add(sun);
 
-// Sky dome
 const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { sunDir: { value: SUN_DIR } },
@@ -224,7 +418,6 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.Shad
 }));
 scene.add(sky);
 
-// Clouds
 function radialTex(inner, outer) {
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -242,7 +435,6 @@ for (let i = 0; i < 24; i++) {
 }
 scene.add(clouds);
 
-// Water (wave shader)
 const waveH = (x, z, t) => 0.12 * Math.sin(x * 0.5 + t * 1.2) + 0.08 * Math.sin(z * 0.7 + t * 1.5) + 0.05 * Math.sin((x + z) * 1.3 + t * 2.0);
 const waterGeo = new THREE.PlaneGeometry(700, 700, 280, 280); waterGeo.rotateX(-Math.PI / 2);
 const waterMat = new THREE.ShaderMaterial({
@@ -270,11 +462,9 @@ const waterMat = new THREE.ShaderMaterial({
 });
 const water = new THREE.Mesh(waterGeo, waterMat); water.position.y = -0.5; scene.add(water);
 
-// Seabed
 const sand = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), new THREE.MeshStandardMaterial({ color: 0xc9a96e, roughness: 1 }));
 sand.rotation.x = -Math.PI / 2; sand.position.y = -8; scene.add(sand);
 
-// --- Textures ---
 function woodTex(c1, c2, repeat) {
     const c = document.createElement('canvas'); c.width = c.height = 256;
     const x = c.getContext('2d'); x.fillStyle = c1; x.fillRect(0, 0, 256, 256); x.fillStyle = c2;
@@ -292,7 +482,6 @@ const shopWoodMat = stdMat({ map: woodTex('#a63a2e', '#551111', [2, 2]), roughne
 const sellWoodMat = stdMat({ map: woodTex('#2e8b4a', '#115511'), roughness: 0.8 });
 const shadow = (m, c = true, r = true) => { m.castShadow = c; m.receiveShadow = r; return m; };
 
-// --- Dock ---
 const planks = new THREE.InstancedMesh(new THREE.BoxGeometry(20, 0.3, 0.92), dockWoodMat, 21);
 planks.castShadow = planks.receiveShadow = true;
 const _m = new THREE.Matrix4(), _c = new THREE.Color();
@@ -309,7 +498,6 @@ const pileGeo = new THREE.CylinderGeometry(0.28, 0.32, 8, 10);
 for (const x of [-9.7, -3.3, 3.3, 9.7]) for (const z of [-9.7, -3.3, 3.3, 9.7]) {
     const p = shadow(new THREE.Mesh(pileGeo, darkWoodMat)); p.position.set(x, -3.2, z); scene.add(p);
 }
-// Lantern posts
 const lanternPos = [[-9.5, 9.5], [9.5, 9.5], [-9.5, 0], [9.5, 0]];
 const lanternLights = [];
 lanternPos.forEach(([x, z], i) => {
@@ -318,14 +506,12 @@ lanternPos.forEach(([x, z], i) => {
     lamp.position.set(x, 2.8, z); scene.add(lamp);
     if (i < 2) { const l = new THREE.PointLight(0xffb85c, 0.6, 12, 2); l.position.set(x, 2.8, z); scene.add(l); lanternLights.push(l); }
 });
-// Rope between posts
 function ropeBetween(a, b) {
     const pts = []; for (let i = 0; i <= 16; i++) { const s = i / 16; pts.push(new THREE.Vector3(a[0] + (b[0] - a[0]) * s, 2.3 - Math.sin(s * Math.PI) * 0.35, a[1] + (b[1] - a[1]) * s)); }
     scene.add(shadow(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.04, 6), stdMat({ color: 0xc8a96a, roughness: 1 })), true, false));
 }
 ropeBetween(lanternPos[0], lanternPos[2]); ropeBetween(lanternPos[1], lanternPos[3]);
 
-// Crates & barrels
 const crateMat = stdMat({ map: woodTex('#b08a5a', '#5a3a1a'), roughness: 0.9 });
 [[-5, 8.4, 0.9], [-4.1, 8.6, 0.7], [-4.7, 8.5, 0.65, 0.9]].forEach(([x, z, s, y]) => {
     const b = shadow(new THREE.Mesh(new THREE.BoxGeometry(s, s, s), crateMat)); b.position.set(x, 0.5 + s / 2 + (y ? 0.75 : 0), z); b.rotation.y = Math.random(); scene.add(b);
@@ -335,7 +521,6 @@ const crateMat = stdMat({ map: woodTex('#b08a5a', '#5a3a1a'), roughness: 0.9 });
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.03, 6, 16), stdMat({ color: 0x333333, metalness: 0.8, roughness: 0.4 })); band.rotation.x = Math.PI / 2; band.position.set(x, 1.25, z); scene.add(band);
 });
 
-// Shop
 const shopGroup = new THREE.Group(); shopGroup.position.set(-8, 0.5, -6);
 const shopBody = shadow(new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), shopWoodMat)); shopBody.position.y = 1.5; shopGroup.add(shopBody);
 const roofMat = stdMat({ color: 0x2a2a30, roughness: 0.9 });
@@ -350,11 +535,10 @@ for (const x of [-1.3, 1.3]) {
 scene.add(shopGroup);
 const shopGlow = new THREE.PointLight(0xffc060, 0.8, 8, 2); shopGlow.position.set(-8, 2, -3.5); scene.add(shopGlow);
 
-// Market stall
 function stripeTex() {
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
     for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#f4f4f0' : '#2eaa5a'; x.fillRect(i * 32, 0, 32, 64); }
-    const t = new THREE.CanvasTexture(c); return t;
+    return new THREE.CanvasTexture(c);
 }
 const sellGroup = new THREE.Group(); sellGroup.position.set(8, 0.5, -6);
 const counter = shadow(new THREE.Mesh(new THREE.BoxGeometry(4, 1, 1.4), dockWoodMat)); counter.position.set(0, 0.5, 0.9); sellGroup.add(counter);
@@ -367,7 +551,6 @@ for (const x of [-2, 2]) for (const z of [-1.4, 1.5]) {
 const tray = shadow(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 0.8), stdMat({ color: 0xcfd8dc, metalness: 0.6, roughness: 0.3 }))); tray.position.set(-0.8, 1.08, 0.9); sellGroup.add(tray);
 scene.add(sellGroup);
 
-// Labels
 function makeLabel(text, color) {
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
     x.font = 'bold 40px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 8; x.strokeStyle = 'black'; x.strokeText(text, 128, 34); x.fillStyle = color; x.fillText(text, 128, 34);
@@ -376,7 +559,6 @@ function makeLabel(text, color) {
 const shopLabel = makeLabel('SHOP', '#ff6666'); shopLabel.position.set(-8, 5.4, -6); scene.add(shopLabel);
 const sellLabel = makeLabel('MARKET', '#38ef7d'); sellLabel.position.set(8, 4.0, -6); scene.add(sellLabel);
 
-// --- FISH ---
 function fishTexture(c1, c2, pat) {
     const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
     x.fillStyle = c1; x.fillRect(0, 0, 256, 256); x.fillStyle = c2;
@@ -388,83 +570,15 @@ function fishTexture(c1, c2, pat) {
 const fishBodyGeo = new THREE.SphereGeometry(1, 32, 20), finGeo = new THREE.ConeGeometry(0.5, 1, 3), eyeGeo = new THREE.SphereGeometry(0.1, 12, 12), pupilGeo = new THREE.SphereGeometry(0.055, 8, 8);
 const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 }), eyeBlack = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-// =====================================================
-// NEW: LOAD scene.glb  (sibling of index.html) -> SARDINE MODEL
-// =====================================================
-let sardineTemplate = null;               // normalized holder (longest dimension == 1, centred on origin)
-const SARDINE_EXTRA_SCALE = 1.0;          // bump this up/down if you want the sardine bigger/smaller
-const SARDINE_ROTATION = new THREE.Euler(0, Math.PI / 2, 0); // tweak if the model faces the wrong way
-
-(function loadSardineModel() {
-    const loader = new THREE.GLTFLoader();
-    // "scene.glb" sits next to index.html — relative path works on GitHub Pages
-    loader.load('scene.glb', (gltf) => {
-        const model = gltf.scene;
-
-        // orient the model first so the bounding box is measured correctly
-        model.rotation.copy(SARDINE_ROTATION);
-        model.updateMatrixWorld(true);
-
-        // measure it
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3(); box.getSize(size);
-        const center = new THREE.Vector3(); box.getCenter(center);
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-
-        // normalise: scale so the longest side is exactly 1, and centre it on the origin
-        const k = 1 / maxDim;
-        model.scale.setScalar(k);
-        model.position.set(-center.x * k, -center.y * k, -center.z * k);
-
-        // disable frustum culling on every mesh (the popup fish sits right in front of the camera)
-        model.traverse(o => {
-            if (o.isMesh) {
-                o.frustumCulled = false;
-                o.castShadow = false;
-                o.receiveShadow = false;
-                if (o.material) o.material.side = THREE.FrontSide;
-            }
-        });
-
-        // holder group so that later we can just clone + scale uniformly
-        sardineTemplate = new THREE.Group();
-        sardineTemplate.add(model);
-
-        console.log('✅ scene.glb loaded — Sardine now uses the custom model (max dim normalised to 1).');
-    },
-    undefined,
-    (err) => {
-        console.warn('⚠️ Could not load scene.glb — falling back to the procedural sardine.', err);
-    });
-})();
-
 function create3DFish(d) {
-    // ---- Sardine: use the custom scene.glb model if it loaded ----
-    if (d.name === 'Sardine' && sardineTemplate) {
-        const g = new THREE.Group();
-        const inst = sardineTemplate.clone(true);
-
-        // the procedural body is a radius-1 sphere scaled by (px,py,pz),
-        // so its raw longest side is 2 * max(prop). Match that exactly.
-        const rawSize = 2 * Math.max(...d.prop) * SARDINE_EXTRA_SCALE;
-        inst.scale.setScalar(rawSize);
-
-        g.add(inst);
-        g.scale.setScalar(d.scale);   // the popup overrides this anyway, keeping size consistent
-        g.userData.tail = null;       // no procedural tail to animate
-        return g;
-    }
-
-    // ---- Default procedural fish ----
     const g = new THREE.Group(), [px, py, pz] = d.prop;
     const mat = new THREE.MeshStandardMaterial({ map: fishTexture(d.c1, d.c2, d.pat), metalness: 0.3, roughness: 0.45, side: THREE.DoubleSide });
     if (d.id === 'Exotic') { mat.emissive = new THREE.Color(d.c2); mat.emissiveIntensity = 0.3; }
     const body = new THREE.Mesh(fishBodyGeo, mat); body.scale.set(px, py, pz); g.add(body);
-    // forked tail on pivot
     const tail = new THREE.Group(); tail.position.z = -pz * 0.85;
     for (const s of [1, -1]) {
         const lobe = new THREE.Mesh(finGeo, mat); lobe.scale.set(0.15, Math.max(py, 0.35) * 1.1, 1);
-        lobe.rotation.x = -Math.PI / 2; lobe.rotation.y = 0; lobe.position.set(0, s * py * 0.45, -0.35); lobe.rotation.z = 0;
+        lobe.rotation.x = -Math.PI / 2; lobe.position.set(0, s * py * 0.45, -0.35);
         lobe.rotateX(s * 0.35); tail.add(lobe);
     }
     g.add(tail); g.userData.tail = tail;
@@ -480,7 +594,6 @@ function create3DFish(d) {
     return g;
 }
 
-// --- ROD ---
 let currentRodModel = null;
 const rodTipBone = new THREE.Object3D();
 function buildRodModel() {
@@ -519,7 +632,6 @@ function buildRodModel() {
 }
 buildRodModel();
 
-// --- LINE, BOBBER, RIPPLES, SPLASH ---
 const LINE_PTS = 24;
 const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LINE_PTS * 3), 3));
 const fishingLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
@@ -549,7 +661,9 @@ function splash(p, n) {
     }
 }
 
-// --- CONTROLS ---
+// =====================================================================
+//  CONTROLS (game)
+// =====================================================================
 let moveVector = { x: 0, y: 0 }, cameraAngles = { yaw: 0, pitch: 0 };
 let isDragging = false, prevTouch = { x: 0, y: 0 }, joyId = null;
 const joyZone = document.getElementById('joystick-zone'), joyKnob = document.getElementById('joystick-knob');
@@ -569,17 +683,30 @@ function doCameraLook(dx, dy) {
     cameraAngles.pitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, cameraAngles.pitch));
     camera.quaternion.setFromEuler(new THREE.Euler(cameraAngles.pitch, cameraAngles.yaw, 0, 'YXZ'));
 }
-document.addEventListener('touchstart', e => { if (e.target.id === 'game-canvas' && e.touches[0].clientX > window.innerWidth / 2) { isDragging = true; prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } });
+document.addEventListener('touchstart', e => {
+    if (e.target.id === 'game-canvas' && (editorMode || e.touches[0].clientX > window.innerWidth / 2)) {
+        isDragging = true; prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+});
 document.addEventListener('touchmove', e => { if (isDragging && e.target.id === 'game-canvas') { doCameraLook(e.touches[0].clientX - prevTouch.x, e.touches[0].clientY - prevTouch.y); prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } }, { passive: false });
 document.addEventListener('touchend', () => isDragging = false);
+
 let keys = { w: false, a: false, s: false, d: false }, isMouseDown = false;
 document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
 document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
-document.addEventListener('mousedown', e => { isMouseDown = true; prevTouch = { x: e.clientX, y: e.clientY }; });
-document.addEventListener('mousemove', e => { if (isMouseDown && e.target.id === 'game-canvas') { doCameraLook(e.clientX - prevTouch.x, e.clientY - prevTouch.y); prevTouch = { x: e.clientX, y: e.clientY }; } });
+document.addEventListener('mousedown', e => {
+    if (editorMode && editorControl && editorControl.axis) return;
+    isMouseDown = true; prevTouch = { x: e.clientX, y: e.clientY };
+});
+document.addEventListener('mousemove', e => {
+    if (editorMode && editorControl && editorControl.dragging) return;
+    if (isMouseDown && e.target.id === 'game-canvas') { doCameraLook(e.clientX - prevTouch.x, e.clientY - prevTouch.y); prevTouch = { x: e.clientX, y: e.clientY }; }
+});
 document.addEventListener('mouseup', () => isMouseDown = false);
 
-// --- GAME STATE ---
+// =====================================================================
+//  GAME STATE
+// =====================================================================
 const actionBtn = document.getElementById('action-btn'), msg = document.getElementById('interaction-msg');
 let state = 'idle', hookTimeout = null, targetFish = null;
 let barPos = 0, fishPos = 150, catchProgress = 0, isHoldingReel = false, fishTarget = 150, popupFishMesh = null;
@@ -588,6 +715,7 @@ actionBtn.addEventListener('mouseup', handleBtnUp); actionBtn.addEventListener('
 
 function handleBtnDown(e) {
     e.preventDefault();
+    if (editorMode) return;
     if (state === 'near_shop') { openShop(); return; }
     if (state === 'near_sell') { openSell(); return; }
     if (state === 'minigame') { isHoldingReel = true; return; }
@@ -659,7 +787,6 @@ function showAlert(text, color) {
 function openModal(id) { document.getElementById(id).style.display = 'block'; }
 window.closeModal = function (id) { document.getElementById(id).style.display = 'none'; };
 
-// --- SHOP ---
 function openShop() {
     openModal('shop-modal');
     document.getElementById('total-caught-text').innerText = `${totalCaughtCount}/${fishDatabase.length}`;
@@ -681,7 +808,6 @@ window.buyRod = function (i, cost) {
 };
 window.equipRod = function (i) { currentRodIndex = i; buildRodModel(); saveGame(); openShop(); };
 
-// --- MARKET ---
 function openSell() {
     openModal('sell-modal');
     const g = document.getElementById('inventory-grid'); g.innerHTML = '';
@@ -694,14 +820,590 @@ window.sellAllFish = function () {
     money += earned; inventory = []; saveGame(); openSell(); showAlert(`Sold for $${earned.toLocaleString()}!`, '#38ef7d');
 };
 
-// --- INIT ---
+// =====================================================================
+//  =====================  SCENE EDITOR  ==============================
+// =====================================================================
+let editorMode = false;
+let editorControl = null;
+let editorModels = [];
+let editorSelected = null;
+let editorBox = null;
+const editorKeys = { w:false, a:false, s:false, d:false, space:false, c:false, shift:false };
+let savedCam = { pos: new THREE.Vector3(0,2,0), quat: new THREE.Quaternion() };
+let editorGizmoDragging = false;
+
+editorControl = new THREE.TransformControls(camera, renderer.domElement);
+editorControl.setSize(0.85);
+editorControl.visible = false;
+editorControl.enabled = false;
+scene.add(editorControl);
+editorControl.addEventListener('dragging-changed', e => {
+    if (e.value) { if (editorBox) editorBox.visible = false; }
+    else { if (editorBox) editorBox.visible = true; }
+});
+editorControl.addEventListener('objectChange', () => {
+    if (editorBox && editorSelected) editorBox.setFromObject(editorSelected);
+    syncEditorPropsFromObj();
+});
+editorControl.addEventListener('mouseDown', () => { editorGizmoDragging = true; });
+editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDragging = false, 0); });
+
+const gltfLoader = new THREE.GLTFLoader();
+
+// =====================================================================
+//  MODEL LOADER (GLB/GLTF/OBJ + MTL)
+// =====================================================================
+function editorLoadModel(fileInfo) {
+    const ext = (fileInfo.ext || '').toLowerCase();
+    if (ext === 'obj') return editorLoadOBJ(fileInfo.url, fileInfo.name, fileInfo.path);
+    return editorLoadGLB(fileInfo.url, fileInfo.name, fileInfo.path);
+}
+
+function editorLoadGLB(url, name, assetPath) {
+    editorToast('Loading ' + name + '…');
+    gltfLoader.load(url,
+        gltf => {
+            const obj = gltf.scene;
+            obj.traverse(o => {
+                if (o.isMesh) {
+                    o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+                    if (o.material) {
+                        o.material.side = THREE.FrontSide;
+                        if (o.material.map) o.material.map.anisotropy = 8;
+                    }
+                }
+            });
+            finalizeModel(obj, name, assetPath, url, false);
+        },
+        undefined,
+        err => { console.error(err); editorToast('Failed to load ' + name); }
+    );
+}
+
+function editorLoadOBJ(url, name, assetPath) {
+    editorToast('Loading OBJ ' + name + '…');
+    const slash = url.lastIndexOf('/');
+    const baseURL = url.substring(0, slash + 1);
+    const objFilename = url.substring(slash + 1);
+    const mtlFilename = objFilename.replace(/\.obj(\?.*)?$/i, '.mtl$1');
+    const mtlURL = baseURL + mtlFilename;
+
+    const finalize = obj => finalizeModel(obj, name, assetPath, url, false);
+
+    const tryPlain = () => {
+        const objLoader = new THREE.OBJLoader();
+        objLoader.load(url, finalize, undefined, err => {
+            console.error(err);
+            editorToast('Failed to load ' + name);
+        });
+    };
+
+    const mtlLoader = new THREE.MTLLoader();
+    mtlLoader.load(mtlURL,
+        mtl => {
+            try { mtl.preload(); } catch (e) { console.warn('MTL preload failed', e); }
+            const objLoader = new THREE.OBJLoader();
+            objLoader.setMaterials(mtl);
+            objLoader.load(url,
+                obj => finalizeModel(obj, name, assetPath, url, true),
+                undefined,
+                err => {
+                    console.warn('OBJ failed with MTL, retrying plain', err);
+                    tryPlain();
+                }
+            );
+        },
+        undefined,
+        () => { tryPlain(); }   // no MTL → plain OBJ
+    );
+}
+
+function finalizeModel(obj, name, assetPath, url, withMtl) {
+    obj.traverse(o => {
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        o.frustumCulled = false;
+        if (o.material) {
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(m => {
+                // Standard material settings that work well with the game's lighting
+                m.side = THREE.FrontSide;
+                if (m.map) {
+                    m.map.anisotropy = 8;
+                    m.map.needsUpdate = true;
+                }
+                // Phong (OBJ default) — tune so it reacts nicely to our lights
+                if (m.isMeshPhongMaterial) {
+                    m.shininess = 25;
+                    if (m.specular && m.specular.isColor) m.specular.setHex(0x222222);
+                }
+                // If material has no map but has color, ensure it isn't black
+                if (!m.map && m.color && m.color.getHex() === 0x000000 && !m.emissive) {
+                    m.color.setHex(0xffffff);
+                }
+                m.needsUpdate = true;
+            });
+        }
+    });
+    obj.name = name;
+    obj.userData.assetPath = assetPath;
+    obj.userData.url = url;
+    scene.add(obj);
+
+    const box = new THREE.Box3().setFromObject(obj);
+    if (isFinite(box.min.y)) obj.position.y -= box.min.y;
+
+    editorModels.push({ name, assetPath, url, object: obj });
+    refreshEditorSceneList();
+    editorSelect(obj);
+    editorToast('Loaded: ' + name + (withMtl ? ' (with MTL)' : ''));
+}
+
+// =====================================================================
+//  REPO SCAN
+// =====================================================================
+let editorRepoBase = null, editorRemoteFiles = [];
+
+async function editorScanRepo() {
+    const raw = $('ed-repo').value.trim()
+        .replace(/^https?:\/\/github\.com\//, '')
+        .replace(/\.git$/, '').replace(/\/$/, '');
+    if (!raw.includes('/')) { edStatus('Enter as owner/repo', '#ff5566'); return; }
+    const branch = $('ed-branch').value.trim() || 'main';
+    const folder = $('ed-folder').value.trim().replace(/^\/+|\/+$/g, '') || 'assets';
+    edStatus('Scanning…', '#8b98a8');
+    try {
+        const res = await fetch(`https://api.github.com/repos/${raw}/contents/${folder}?ref=${branch}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 404 ? ' (check repo/branch/folder)' : ''));
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Not a folder');
+
+        const allNames = data.map(f => f.name.toLowerCase());
+
+        editorRepoBase = { repo: raw, branch, folder };
+        editorRemoteFiles = data
+            .filter(f => /\.(glb|gltf|obj)$/i.test(f.name))
+            .map(f => {
+                const ext = f.name.split('.').pop().toLowerCase();
+                const baseName = f.name.replace(/\.(glb|gltf|obj)$/i, '');
+                return {
+                    name: baseName,
+                    path: `${folder}/${f.name}`,
+                    url: `https://raw.githubusercontent.com/${raw}/${branch}/${folder}/${encodeURIComponent(f.name)}`,
+                    ext: ext,
+                    hasMTL: allNames.includes((baseName + '.mtl').toLowerCase())
+                };
+            });
+        renderEditorRemote();
+        edStatus(editorRemoteFiles.length + ' model(s) found', '#38ef7d');
+    } catch (e) {
+        edStatus('Error: ' + e.message, '#ff5566');
+    }
+}
+
+function renderEditorRemote() {
+    const el = $('ed-remote');
+    if (!editorRemoteFiles.length) { el.innerHTML = '<div class="ed-empty">No .glb / .gltf / .obj files</div>'; return; }
+    el.innerHTML = '';
+    editorRemoteFiles.forEach(f => {
+        const added = editorModels.some(m => m.assetPath === f.path);
+        const tag = f.ext.toUpperCase() + (f.ext === 'obj' && f.hasMTL ? '+MTL' : '');
+        const row = document.createElement('div');
+        row.className = 'ed-item';
+        row.innerHTML = `<span class="nm">${f.name}<span class="tag">${tag}</span></span>
+            <button class="mini add" ${added ? 'disabled style="opacity:.3"' : ''}>${added ? '✓' : '+'}</button>`;
+        row.querySelector('.mini').onclick = ev => {
+            ev.stopPropagation();
+            if (added) return;
+            editorLoadModel(f);
+            renderEditorRemote();
+        };
+        el.appendChild(row);
+    });
+}
+function edStatus(t, c) { const s = $('ed-status'); s.textContent = t; s.style.color = c || '#8b98a8'; }
+
+// =====================================================================
+//  SELECTION / PROPS
+// =====================================================================
+const editorRaycaster = new THREE.Raycaster();
+const editorNDC = new THREE.Vector2();
+let editorPointerDown = null;
+let editorDragged = false;
+
+function editorSelect(obj) {
+    editorSelected = obj;
+    if (obj) {
+        editorControl.attach(obj);
+        editorControl.visible = true;
+        editorControl.enabled = true;
+        showEditorBox(obj);
+        $('ed-no-sel').style.display = 'none';
+        $('ed-prop-body').style.display = 'block';
+        syncEditorPropsFromObj();
+    } else {
+        editorControl.detach();
+        editorControl.visible = false;
+        editorControl.enabled = false;
+        hideEditorBox();
+        $('ed-no-sel').style.display = 'block';
+        $('ed-prop-body').style.display = 'none';
+    }
+    refreshEditorSceneList();
+}
+function showEditorBox(obj) {
+    hideEditorBox();
+    editorBox = new THREE.BoxHelper(obj, 0x00c6ff);
+    editorBox.material.depthTest = false;
+    editorBox.material.transparent = true;
+    editorBox.material.opacity = 0.9;
+    scene.add(editorBox);
+}
+function hideEditorBox() {
+    if (editorBox) { scene.remove(editorBox); editorBox.geometry.dispose(); editorBox = null; }
+}
+function refreshEditorSceneList() {
+    const el = $('ed-scene');
+    $('ed-count').textContent = editorModels.length;
+    if (!editorModels.length) { el.innerHTML = '<div class="ed-empty">Nothing loaded</div>'; return; }
+    el.innerHTML = '';
+    editorModels.forEach(m => {
+        const row = document.createElement('div');
+        row.className = 'ed-item' + (editorSelected === m.object ? ' sel' : '');
+        row.innerHTML = `<span class="nm">${m.name}</span>
+            <button class="mini" title="Toggle visibility">${m.object.visible ? '👁' : '🚫'}</button>
+            <button class="mini" title="Delete">✕</button>`;
+        row.onclick = () => editorSelect(m.object);
+        const [eye, del] = row.querySelectorAll('.mini');
+        eye.onclick = e => { e.stopPropagation(); m.object.visible = !m.object.visible; refreshEditorSceneList(); };
+        del.onclick = e => { e.stopPropagation(); editorRemoveModel(m); };
+        el.appendChild(row);
+    });
+}
+function editorRemoveModel(m) {
+    if (editorSelected === m.object) editorSelect(null);
+    scene.remove(m.object);
+    m.object.traverse(o => {
+        if (o.isMesh) {
+            o.geometry && o.geometry.dispose();
+            if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => {
+                if (mm.map) mm.map.dispose();
+                mm.dispose();
+            });
+        }
+    });
+    editorModels.splice(editorModels.indexOf(m), 1);
+    refreshEditorSceneList();
+    renderEditorRemote();
+}
+
+const ED_RAD = Math.PI / 180;
+const edRound = v => Math.round(v * 1000) / 1000;
+function syncEditorPropsFromObj() {
+    if (!editorSelected) return;
+    const p = editorSelected.position, r = editorSelected.rotation, s = editorSelected.scale;
+    $('ed-name').value = editorSelected.name || '';
+    $('ed-path').value = editorSelected.userData.assetPath || '';
+    $('ed-px').value = edRound(p.x); $('ed-py').value = edRound(p.y); $('ed-pz').value = edRound(p.z);
+    $('ed-rx').value = edRound(r.x / ED_RAD); $('ed-ry').value = edRound(r.y / ED_RAD); $('ed-rz').value = edRound(r.z / ED_RAD);
+    $('ed-sx').value = edRound(s.x); $('ed-sy').value = edRound(s.y); $('ed-sz').value = edRound(s.z);
+}
+function edBind(id, fn) {
+    const el = $(id);
+    el.addEventListener('input', () => { if (editorSelected) { fn(parseFloat(el.value) || 0); if (editorBox) editorBox.setFromObject(editorSelected); } });
+    el.addEventListener('blur', () => { if (editorSelected) syncEditorPropsFromObj(); });
+}
+edBind('ed-px', v => editorSelected.position.x = v);
+edBind('ed-py', v => editorSelected.position.y = v);
+edBind('ed-pz', v => editorSelected.position.z = v);
+edBind('ed-rx', v => editorSelected.rotation.x = v * ED_RAD);
+edBind('ed-ry', v => editorSelected.rotation.y = v * ED_RAD);
+edBind('ed-rz', v => editorSelected.rotation.z = v * ED_RAD);
+edBind('ed-sx', v => { editorSelected.scale.x = v; if ($('ed-uniform').checked) { editorSelected.scale.y = editorSelected.scale.z = v; syncEditorPropsFromObj(); } });
+edBind('ed-sy', v => { editorSelected.scale.y = v; if ($('ed-uniform').checked) { editorSelected.scale.x = editorSelected.scale.z = v; syncEditorPropsFromObj(); } });
+edBind('ed-sz', v => { editorSelected.scale.z = v; if ($('ed-uniform').checked) { editorSelected.scale.x = editorSelected.scale.y = v; syncEditorPropsFromObj(); } });
+
+$('ed-name').addEventListener('input', e => {
+    if (!editorSelected) return;
+    editorSelected.name = e.target.value;
+    const m = editorModels.find(x => x.object === editorSelected);
+    if (m) m.name = e.target.value;
+    refreshEditorSceneList();
+});
+
+$('ed-focus').onclick = () => {
+    if (!editorSelected) return;
+    const box = new THREE.Box3().setFromObject(editorSelected);
+    const size = box.getSize(new THREE.Vector3()).length() || 2;
+    const center = box.getCenter(new THREE.Vector3());
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    camera.position.copy(center).addScaledVector(dir, -size * 1.6);
+    camera.lookAt(center);
+    const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+    cameraAngles.yaw = e.y; cameraAngles.pitch = e.x;
+};
+$('ed-del').onclick = () => {
+    if (!editorSelected) return;
+    const m = editorModels.find(x => x.object === editorSelected);
+    if (m) editorRemoveModel(m);
+};
+
+document.querySelectorAll('.ed-btn.mode').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        editorControl.setMode(btn.dataset.mode);
+    };
+});
+
+$('ed-scan').onclick = editorScanRepo;
+
+// =====================================================================
+//  DIRECT URL LOAD (with auto extension detection)
+// =====================================================================
+$('ed-url-add').onclick = () => {
+    const raw = $('ed-url').value.trim();
+    if (!raw) return;
+
+    let url = raw;
+    let name = raw.split('/').pop().replace(/\.(glb|gltf|obj)(\?.*)?$/i, '');
+    let ext = '';
+    const em0 = raw.match(/\.(glb|gltf|obj)(\?.*)?$/i);
+    if (em0) ext = em0[1].toLowerCase();
+
+    if (/^https?:\/\//.test(raw)) {
+        // Remote URL — try to infer name/extension
+        const fname = raw.split('/').pop().split('?')[0];
+        name = fname.replace(/\.(glb|gltf|obj)$/i, '');
+        const em = fname.match(/\.(glb|gltf|obj)$/i);
+        if (em) ext = em[1].toLowerCase();
+    } else if (editorRepoBase) {
+        // Local path → resolve against repo
+        const clean = raw.replace(/^\/+/, '');
+        const path = clean.startsWith(editorRepoBase.folder + '/') ? clean : (editorRepoBase.folder + '/' + clean);
+        url = `https://raw.githubusercontent.com/${editorRepoBase.repo}/${editorRepoBase.branch}/${path}`;
+        const fname = path.split('/').pop();
+        name = fname.replace(/\.(glb|gltf|obj)$/i, '');
+        const em = fname.match(/\.(glb|gltf|obj)$/i);
+        if (em) ext = em[1].toLowerCase();
+    }
+
+    if (!ext) ext = 'glb';
+
+    if (ext === 'obj') editorLoadOBJ(url, name, raw);
+    else editorLoadGLB(url, name, raw);
+
+    $('ed-url').value = '';
+};
+
+// =====================================================================
+//  EDITOR MOBILE FLIGHT CONTROLS
+// =====================================================================
+let edJoyId = null;
+let edJoyVec = { x: 0, y: 0 };
+let edFlyUp = false, edFlyDown = false;
+const edJoyZone = document.getElementById('ed-joystick-zone');
+const edJoyKnob = document.getElementById('ed-joystick-knob');
+
+function edUpdateJoy(t) {
+    const r = edJoyZone.getBoundingClientRect();
+    const max = r.width / 2 - 20;
+    let dx = t.clientX - (r.left + r.width / 2);
+    let dy = t.clientY - (r.top + r.height / 2);
+    const dist = Math.hypot(dx, dy);
+    if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
+    edJoyKnob.style.transform = `translate(${dx}px,${dy}px)`;
+    edJoyVec.x = dx / max;
+    edJoyVec.y = dy / max;
+}
+edJoyZone.addEventListener('touchstart', e => {
+    if (edJoyId === null) {
+        edJoyId = e.changedTouches[0].identifier;
+        edUpdateJoy(e.changedTouches[0]);
+        e.preventDefault();
+    }
+}, { passive: false });
+edJoyZone.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) if (t.identifier === edJoyId) { edUpdateJoy(t); e.preventDefault(); }
+}, { passive: false });
+const edEndJoy = e => {
+    for (const t of e.changedTouches) if (t.identifier === edJoyId) {
+        edJoyId = null;
+        edJoyKnob.style.transform = 'translate(0px,0px)';
+        edJoyVec = { x: 0, y: 0 };
+    }
+};
+edJoyZone.addEventListener('touchend', edEndJoy);
+edJoyZone.addEventListener('touchcancel', edEndJoy);
+
+function edBindHold(el, setter) {
+    const on = e => { e.preventDefault(); setter(true); };
+    const off = e => { e.preventDefault(); setter(false); };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('touchend', off);
+    el.addEventListener('touchcancel', off);
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+}
+edBindHold($('ed-up'), v => edFlyUp = v);
+edBindHold($('ed-down'), v => edFlyDown = v);
+
+function edResetJoystick() {
+    edJoyId = null;
+    edJoyVec = { x: 0, y: 0 };
+    edFlyUp = false;
+    edFlyDown = false;
+    edJoyKnob.style.transform = 'translate(0px,0px)';
+}
+
+// =====================================================================
+//  EDITOR TOGGLE / KEYBOARD / UPDATE
+// =====================================================================
+$('editor-toggle').onclick = () => {
+    editorMode = !editorMode;
+    document.body.classList.toggle('editor', editorMode);
+    $('editor-toggle').textContent = editorMode ? '✕ EXIT EDITOR' : '✎ SCENE EDITOR';
+    if (editorMode) {
+        savedCam.pos.copy(camera.position);
+        savedCam.quat.copy(camera.quaternion);
+        camera.position.set(0, 22, 42);
+        camera.lookAt(0, 2, 0);
+        const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+        cameraAngles.yaw = e.y; cameraAngles.pitch = e.x;
+        if (currentRodModel) currentRodModel.visible = false;
+        editorControl.enabled = true;
+        editorToast('Editor ON — joystick or WASD to fly');
+    } else {
+        camera.position.copy(savedCam.pos);
+        camera.quaternion.copy(savedCam.quat);
+        const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+        cameraAngles.yaw = e.y; cameraAngles.pitch = e.x;
+        if (currentRodModel) currentRodModel.visible = true;
+        editorControl.enabled = false;
+        editorControl.visible = false;
+        edResetJoystick();
+        editorToast('Editor OFF');
+    }
+};
+
+document.addEventListener('keydown', e => {
+    if (!editorMode) return;
+    const k = e.key.toLowerCase();
+    if (k in editorKeys) { editorKeys[k] = true; if (k === 'w'||k==='a'||k==='s'||k==='d') e.preventDefault(); }
+    if (e.code === 'Space') { editorKeys.space = true; e.preventDefault(); }
+    if (k === 'c') editorKeys.c = true;
+    if (e.key === 'Shift') editorKeys.shift = true;
+    if (k === '1') { editorControl.setMode('translate'); document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.toggle('on', b.dataset.mode==='translate')); }
+    if (k === '2') { editorControl.setMode('rotate'); document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.toggle('on', b.dataset.mode==='rotate')); }
+    if (k === '3') { editorControl.setMode('scale'); document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.toggle('on', b.dataset.mode==='scale')); }
+    if (k === 'f') $('ed-focus').click();
+    if (k === 'delete' || k === 'backspace') { if (editorSelected) { const m = editorModels.find(x => x.object === editorSelected); if (m) editorRemoveModel(m); } }
+    if (k === 'escape') editorSelect(null);
+});
+document.addEventListener('keyup', e => {
+    const k = e.key.toLowerCase();
+    if (k in editorKeys) editorKeys[k] = false;
+    if (e.code === 'Space') editorKeys.space = false;
+    if (e.key === 'Shift') editorKeys.shift = false;
+});
+
+function updateEditorCamera(dt) {
+    const speed = (editorKeys.shift ? 40 : 14) * dt;
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+    const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
+
+    let fwd = 0, side = 0;
+    if (editorKeys.w) fwd += 1;
+    if (editorKeys.s) fwd -= 1;
+    if (editorKeys.d) side += 1;
+    if (editorKeys.a) side -= 1;
+    if (edJoyVec.x !== 0 || edJoyVec.y !== 0) {
+        side += edJoyVec.x;
+        fwd  += -edJoyVec.y;
+    }
+    if (fwd !== 0)  camera.position.addScaledVector(dir,   fwd  * speed);
+    if (side !== 0) camera.position.addScaledVector(right, side * speed);
+
+    let vert = 0;
+    if (editorKeys.space) vert += 1;
+    if (editorKeys.c)     vert -= 1;
+    if (edFlyUp)   vert += 1;
+    if (edFlyDown) vert -= 1;
+    if (vert !== 0) camera.position.y += vert * speed;
+}
+
+const canvasEl = renderer.domElement;
+canvasEl.addEventListener('pointerdown', e => {
+    if (!editorMode) return;
+    editorPointerDown = { x: e.clientX, y: e.clientY };
+    editorDragged = false;
+});
+canvasEl.addEventListener('pointermove', e => {
+    if (!editorMode || !editorPointerDown) return;
+    if (Math.hypot(e.clientX - editorPointerDown.x, e.clientY - editorPointerDown.y) > 5) editorDragged = true;
+});
+canvasEl.addEventListener('pointerup', e => {
+    if (!editorMode) return;
+    if (editorDragged || editorGizmoDragging || editorControl.dragging) { editorPointerDown = null; return; }
+    editorPointerDown = null;
+    const rect = canvasEl.getBoundingClientRect();
+    editorNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    editorNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    editorRaycaster.setFromCamera(editorNDC, camera);
+    const objs = editorModels.filter(m => m.object.visible).map(m => m.object);
+    const hits = editorRaycaster.intersectObjects(objs, true);
+    if (hits.length) {
+        let o = hits[0].object;
+        while (o.parent && !editorModels.some(m => m.object === o)) o = o.parent;
+        editorSelect(o);
+    } else {
+        editorSelect(null);
+    }
+});
+
+$('ed-export').onclick = () => {
+    if (!editorModels.length) { editorToast('Scene is empty'); return; }
+    const lines = editorModels.map(m => {
+        const p = m.object.position, r = m.object.rotation, s = m.object.scale;
+        const f = n => Math.round(n * 1000) / 1000;
+        return `  { name:'${m.name}', path:'${m.assetPath}', ` +
+               `position:[${f(p.x)}, ${f(p.y)}, ${f(p.z)}], ` +
+               `rotation:[${f(r.x/ED_RAD)}, ${f(r.y/ED_RAD)}, ${f(r.z/ED_RAD)}], ` +
+               `scale:[${f(s.x)}, ${f(s.y)}, ${f(s.z)}] }`;
+    });
+    const out = `const sceneAssets = [\n${lines.join(',\n')}\n];\n`;
+    $('ed-export-text').value = out;
+    $('editor-modal').classList.add('on');
+};
+$('ed-close-modal').onclick = () => $('editor-modal').classList.remove('on');
+$('ed-copy').onclick = () => {
+    const ta = $('ed-export-text');
+    ta.select();
+    try { document.execCommand('copy'); editorToast('Copied!'); }
+    catch (e) { navigator.clipboard.writeText(ta.value).then(() => editorToast('Copied!')); }
+};
+
+let edToastT = null;
+function editorToast(t) {
+    const el = $('ed-toast'); el.textContent = t; el.classList.add('on');
+    clearTimeout(edToastT);
+    edToastT = setTimeout(() => el.classList.remove('on'), 1800);
+}
+
+// =====================================================================
+//  INIT
+// =====================================================================
 setTimeout(() => {
     const l = document.getElementById('loading-screen'); l.style.opacity = '0';
     setTimeout(() => { l.style.display = 'none'; document.getElementById('ui-layer').style.opacity = '1'; }, 800);
 }, 2000);
 updateHUD();
 
-// --- MAIN LOOP ---
+// =====================================================================
+//  MAIN LOOP
+// =====================================================================
 const clock = new THREE.Clock();
 const _tip = new THREE.Vector3(), _dir = new THREE.Vector3(), _right = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 let bob = 0;
@@ -714,7 +1416,6 @@ function animate() {
     clouds.children.forEach((c, i) => { c.position.x += dt * (1.2 + (i % 3) * 0.4); if (c.position.x > 500) c.position.x = -500; });
     lanternLights.forEach((l, i) => l.intensity = 0.55 + Math.sin(time * 7 + i * 3) * 0.08 + Math.random() * 0.04);
 
-    // Golden rod lightning
     if (currentRodModel) {
         const bolts = currentRodModel.getObjectByName('lightningBolts');
         if (bolts) {
@@ -727,7 +1428,14 @@ function animate() {
         }
     }
 
-    // Movement + stations
+    if (editorMode) {
+        updateEditorCamera(dt);
+        if (editorBox && editorSelected) editorBox.setFromObject(editorSelected);
+        sky.position.copy(camera.position);
+        renderer.render(scene, camera);
+        return;
+    }
+
     if (state === 'idle' || state.startsWith('near_')) {
         let mX = moveVector.x, mY = -moveVector.y;
         if (keys.w) mY = 1; if (keys.s) mY = -1; if (keys.a) mX = -1; if (keys.d) mX = 1;
@@ -755,7 +1463,6 @@ function animate() {
         }
     }
 
-    // Line, bobber, ripples
     const fishing = state === 'casting' || state === 'hooked' || state === 'minigame';
     fishingLine.visible = bobber.visible = fishing;
     ripples.forEach(r => r.visible = fishing);
@@ -781,7 +1488,6 @@ function animate() {
         });
     }
 
-    // Splash particles
     for (let i = 0; i < SP_N; i++) {
         if (spLife[i] > 0) {
             spLife[i] -= dt * 1.2; spVel[i * 3 + 1] -= 9.8 * dt;
@@ -791,7 +1497,6 @@ function animate() {
     }
     spGeo.attributes.position.needsUpdate = true;
 
-    // Catch popup
     if (state === 'popup' && popupFishMesh) {
         popupFishMesh.rotation.y += 1.5 * dt;
         popupFishMesh.rotation.z = Math.sin(time * 4) * 0.08;
@@ -799,7 +1504,6 @@ function animate() {
         const tail = popupFishMesh.userData.tail; if (tail) tail.rotation.y = Math.sin(time * 9) * 0.5;
     }
 
-    // Minigame
     if (state === 'minigame') {
         barPos += (isHoldingReel ? 250 : -250) * dt; barPos = Math.max(0, Math.min(270, barPos));
         if (Math.random() < 0.05) fishTarget = Math.random() * 330;
