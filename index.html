@@ -838,6 +838,38 @@ editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDr
 
 const gltfLoader = new THREE.GLTFLoader();
 
+// =====================================================================
+//  TEXTURE URL RESOLVER
+//  FBX/OBJ files reference external images by relative name. This manager
+//  rewrites those requests so they hit the asset's actual GitHub folder.
+// =====================================================================
+const assetLoadingManager = new THREE.LoadingManager();
+let currentAssetBaseURL = '';
+
+assetLoadingManager.setURLModifier(url => {
+    if (!url) return url;
+    // Absolute URLs and data URIs pass through untouched
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (!currentAssetBaseURL) return url;
+
+    // Decode URI components (FBX sometimes stores "texture%20name.png")
+    let clean = url.replace(/^\.?\/+/, '');
+    try { clean = decodeURIComponent(clean); } catch (e) {}
+
+    // Strip any directory prefix — we only want the bare filename
+    const filename = clean.split('/').pop();
+
+    // Build the final URL relative to the model we're loading
+    const resolved = currentAssetBaseURL + encodeURIComponent(filename);
+    console.log('[editor] texture:', url, '→', resolved);
+    return resolved;
+});
+
+// Global onError so we can see texture 404s in the console
+assetLoadingManager.onError = url => {
+    console.warn('[editor] FAILED to load:', url);
+};
+
 function editorLoadModel(fileInfo) {
     const ext = (fileInfo.ext || '').toLowerCase();
     if (ext === 'obj') return editorLoadOBJ(fileInfo.url, fileInfo.name, fileInfo.path);
@@ -865,21 +897,22 @@ function editorLoadOBJ(url, name, assetPath) {
     const mtlFilename = objFilename.replace(/\.obj(\?.*)?$/i, '.mtl$1');
     const mtlURL = baseURL + mtlFilename;
 
-    const finalize = obj => finalizeModel(obj, name, assetPath, url, false);
+    // Point the loader at the right folder for textures referenced by the MTL
+    currentAssetBaseURL = baseURL;
 
     const tryPlain = () => {
-        const objLoader = new THREE.OBJLoader();
-        objLoader.load(url, finalize, undefined, err => {
+        const objLoader = new THREE.OBJLoader(assetLoadingManager);
+        objLoader.load(url, obj => finalizeModel(obj, name, assetPath, url, false), undefined, err => {
             console.error(err);
             editorToast('Failed to load ' + name);
         });
     };
 
-    const mtlLoader = new THREE.MTLLoader();
+    const mtlLoader = new THREE.MTLLoader(assetLoadingManager);
     mtlLoader.load(mtlURL,
         mtl => {
             try { mtl.preload(); } catch (e) { console.warn('MTL preload failed', e); }
-            const objLoader = new THREE.OBJLoader();
+            const objLoader = new THREE.OBJLoader(assetLoadingManager);
             objLoader.setMaterials(mtl);
             objLoader.load(url,
                 obj => finalizeModel(obj, name, assetPath, url, true),
@@ -897,9 +930,23 @@ function editorLoadOBJ(url, name, assetPath) {
 
 function editorLoadFBX(url, name, assetPath) {
     editorToast('Loading FBX ' + name + '…');
-    const loader = new THREE.FBXLoader();
+    // Remember the folder this FBX lives in so textures resolve correctly
+    const slash = url.lastIndexOf('/');
+    currentAssetBaseURL = url.substring(0, slash + 1);
+
+    const loader = new THREE.FBXLoader(assetLoadingManager);
     loader.load(url,
         fbx => {
+            // Log what materials/textures actually landed
+            fbx.traverse(o => {
+                if (!o.isMesh || !o.material) return;
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                mats.forEach(m => {
+                    console.log('[editor] FBX material:', m.name,
+                        '| color:', m.color ? '#' + m.color.getHexString() : 'none',
+                        '| map:', m.map ? (m.map.image ? 'OK ' + m.map.image.width + '×' + m.map.image.height : 'PENDING') : 'none');
+                });
+            });
             finalizeModel(fbx, name, assetPath, url, false);
         },
         undefined,
@@ -919,13 +966,20 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
                 m.side = THREE.DoubleSide;
-                m.transparent = false;
-                if (m.opacity !== undefined && m.opacity < 0.05) m.opacity = 1;
-                if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
+                // Only force opaque when there's no alpha map — otherwise we'd break glass/leaves
+                if (!m.alphaMap && !m.transparent) {
+                    if (m.opacity !== undefined && m.opacity < 0.05) m.opacity = 1;
+                }
+                if (m.map) {
+                    m.map.anisotropy = 8;
+                    m.map.encoding = THREE.sRGBEncoding;
+                    m.map.needsUpdate = true;
+                }
                 if (m.isMeshPhongMaterial) {
                     m.shininess = 20;
                     if (m.specular && m.specular.isColor) m.specular.setHex(0x111111);
                 }
+                // Only force white if there's no texture AND color is black
                 if (!m.map && m.color && m.color.getHex() === 0x000000) {
                     m.color.setHex(0xcccccc);
                 }
