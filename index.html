@@ -46,7 +46,6 @@ body,html{margin:0;padding:0;overflow:hidden;background:#5ca8ff;font-family:'Seg
 .rarity-Legendary{color:#FFD54F;text-shadow:0 0 15px rgba(255,213,79,.8)}.rarity-Exotic{color:#0ff;text-shadow:0 0 20px #0ff;font-weight:900;letter-spacing:1px}
 #alert-box{position:absolute;top:15%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);backdrop-filter:blur(5px);color:#fff;padding:15px 30px;border-radius:12px;font-size:18px;font-weight:bold;text-align:center;display:none;pointer-events:none;z-index:5;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 20px rgba(0,0,0,.5)}
 
-/* EDITOR */
 body.editor #joystick-zone,body.editor #action-btn,body.editor #hud,
 body.editor #crosshair,body.editor #interaction-msg{display:none!important}
 
@@ -101,7 +100,6 @@ body.editor #editor-panel{display:block}
 #ed-advanced{display:none;margin-top:6px;padding:8px;border-radius:9px;background:rgba(0,0,0,.25);
   border:1px solid rgba(255,255,255,.06)}
 
-/* EDITOR MOBILE CONTROLS */
 #ed-joystick-zone{position:absolute;bottom:30px;left:30px;width:150px;height:150px;
   background:rgba(0,198,255,.08);border-radius:50%;border:2px solid rgba(0,198,255,.35);
   backdrop-filter:blur(8px);pointer-events:auto;display:none;z-index:70;touch-action:none;
@@ -296,14 +294,8 @@ body.editor #ed-alt-btns{display:flex}
 <div id="ed-toast"></div>
 
 <script>
-// =====================================================================
-//  HELPER
-// =====================================================================
 const $ = id => document.getElementById(id);
 
-// =====================================================================
-//  FISH DATABASE
-// =====================================================================
 const rawFishData = [
 ['Anchovy','Common',10,'#c0c0c0','#aaa',0,[0.3,0.4,1.2],0.25],['Herring','Common',12,'#a8b8c8','#555',1,[0.4,0.5,1.1],0.3],
 ['Sardine','Common',12,'#8899aa','#fff',3,[0.3,0.4,1.0],0.25],['Minnow','Common',10,'#b8a898','#333',1,[0.3,0.4,1.0],0.2],
@@ -380,9 +372,6 @@ function loadGame() {
 }
 loadGame();
 
-// =====================================================================
-//  THREE SETUP
-// =====================================================================
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -667,9 +656,6 @@ function splash(p, n) {
     }
 }
 
-// =====================================================================
-//  CONTROLS (game)
-// =====================================================================
 let moveVector = { x: 0, y: 0 }, cameraAngles = { yaw: 0, pitch: 0 };
 let isDragging = false, prevTouch = { x: 0, y: 0 }, joyId = null;
 const joyZone = document.getElementById('joystick-zone'), joyKnob = document.getElementById('joystick-knob');
@@ -710,9 +696,6 @@ document.addEventListener('mousemove', e => {
 });
 document.addEventListener('mouseup', () => isMouseDown = false);
 
-// =====================================================================
-//  GAME STATE
-// =====================================================================
 const actionBtn = document.getElementById('action-btn'), msg = document.getElementById('interaction-msg');
 let state = 'idle', hookTimeout = null, targetFish = null;
 let barPos = 0, fishPos = 150, catchProgress = 0, isHoldingReel = false, fishTarget = 150, popupFishMesh = null;
@@ -826,9 +809,6 @@ window.sellAllFish = function () {
     money += earned; inventory = []; saveGame(); openSell(); showAlert(`Sold for $${earned.toLocaleString()}!`, '#38ef7d');
 };
 
-// =====================================================================
-//  =====================  SCENE EDITOR  ==============================
-// =====================================================================
 let editorMode = false;
 let editorControl = null;
 let editorModels = [];
@@ -856,9 +836,6 @@ editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDr
 
 const gltfLoader = new THREE.GLTFLoader();
 
-// =====================================================================
-//  MODEL LOADER (GLB/GLTF/OBJ + MTL)
-// =====================================================================
 function editorLoadModel(fileInfo) {
     const ext = (fileInfo.ext || '').toLowerCase();
     if (ext === 'obj') return editorLoadOBJ(fileInfo.url, fileInfo.name, fileInfo.path);
@@ -870,15 +847,6 @@ function editorLoadGLB(url, name, assetPath) {
     gltfLoader.load(url,
         gltf => {
             const obj = gltf.scene;
-            obj.traverse(o => {
-                if (o.isMesh) {
-                    o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
-                    if (o.material) {
-                        o.material.side = THREE.FrontSide;
-                        if (o.material.map) o.material.map.anisotropy = 8;
-                    }
-                }
-            });
             finalizeModel(obj, name, assetPath, url, false);
         },
         undefined,
@@ -924,35 +892,63 @@ function editorLoadOBJ(url, name, assetPath) {
     );
 }
 
+// FIXED: this is the function that makes Poly Pizza OBJs visible
 function finalizeModel(obj, name, assetPath, url, withMtl) {
+    let meshCount = 0;
     obj.traverse(o => {
-        if (!o.isMesh) return;
+        if (!o.isMesh && !o.isLine && !o.isPoints) return;
+        meshCount++;
         o.castShadow = true;
         o.receiveShadow = true;
         o.frustumCulled = false;
         if (o.material) {
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
-                m.side = THREE.FrontSide;
+                m.side = THREE.DoubleSide;         // flipped-normals fix
+                m.transparent = false;
+                if (m.opacity !== undefined && m.opacity < 0.05) m.opacity = 1;
                 if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
                 if (m.isMeshPhongMaterial) {
-                    m.shininess = 25;
-                    if (m.specular && m.specular.isColor) m.specular.setHex(0x222222);
+                    m.shininess = 20;
+                    if (m.specular && m.specular.isColor) m.specular.setHex(0x111111);
                 }
-                if (!m.map && m.color && m.color.getHex() === 0x000000 && !m.emissive) {
-                    m.color.setHex(0xffffff);
+                if (!m.map && m.color && m.color.getHex() === 0x000000) {
+                    m.color.setHex(0xcccccc);
                 }
+                m.visible = true;
                 m.needsUpdate = true;
             });
         }
     });
+
+    if (meshCount === 0) {
+        console.warn('[editor] ' + name + ' has no meshes/lines/points');
+        editorToast(name + ': no geometry found');
+    }
+
     obj.name = name;
     obj.userData.assetPath = assetPath;
     obj.userData.url = url;
     scene.add(obj);
 
+    // Size check + auto-normalize
     const box = new THREE.Box3().setFromObject(obj);
-    if (isFinite(box.min.y)) obj.position.y -= box.min.y;
+    const size = box.getSize(new THREE.Vector3());
+    const dims = [size.x, size.y, size.z];
+    const maxDim = Math.max(...dims);
+    console.log('[editor] ' + name + ' size =', dims, 'maxDim =', maxDim);
+
+    if (isFinite(maxDim) && maxDim > 0) {
+        if (maxDim > 200 || maxDim < 0.02) {
+            const factor = 2 / maxDim;
+            obj.scale.multiplyScalar(factor);
+            console.log('[editor] auto-scaled ' + name + ' ×' + factor.toFixed(3));
+            editorToast(name + ' auto-scaled ×' + factor.toFixed(2));
+        }
+    }
+
+    const box2 = new THREE.Box3().setFromObject(obj);
+    if (isFinite(box2.min.y)) obj.position.y -= box2.min.y;
 
     editorModels.push({ name, assetPath, url, object: obj });
     refreshEditorSceneList();
@@ -960,22 +956,16 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     editorToast('Loaded: ' + name + (withMtl ? ' (with MTL)' : ''));
 }
 
-// =====================================================================
-//  AUTO-DETECT + SCAN
-// =====================================================================
 let editorRepoBase = null, editorRemoteFiles = [];
 
-// Detect owner/repo from GitHub Pages URL
 function detectRepoFromURL() {
     const host = location.hostname;
     const path = location.pathname.split('/').filter(Boolean);
-    // Match https://owner.github.io/repo/...
     const m = host.match(/^([a-z0-9_-]+)\.github\.io$/i);
     if (m && path[0]) return { owner: m[1], repo: path[0] };
     return null;
 }
 
-// Auto-fill repo input from URL (called on load)
 function autoFillRepo() {
     const det = detectRepoFromURL();
     if (det) {
@@ -986,11 +976,8 @@ function autoFillRepo() {
     return null;
 }
 
-// Silent fetch — tries the API and updates the list if it works
 async function editorScanRepo(silent) {
     let raw = $('ed-repo').value.trim();
-
-    // Auto-detect if blank
     if (!raw) {
         raw = autoFillRepo() || '';
         if (!raw) {
@@ -998,8 +985,6 @@ async function editorScanRepo(silent) {
             return;
         }
     }
-
-    // Normalize any URL / path into owner/repo
     raw = raw
         .replace(/^git@github\.com:/, '')
         .replace(/^https?:\/\/(www\.)?github\.com\//, '')
@@ -1069,9 +1054,6 @@ function renderEditorRemote() {
 }
 function edStatus(t, c) { const s = $('ed-status'); s.textContent = t; s.style.color = c || '#8b98a8'; }
 
-// =====================================================================
-//  SELECTION / PROPS
-// =====================================================================
 const editorRaycaster = new THREE.Raycaster();
 const editorNDC = new THREE.Vector2();
 let editorPointerDown = null;
@@ -1204,7 +1186,6 @@ document.querySelectorAll('.ed-btn.mode').forEach(btn => {
 
 $('ed-scan').onclick = () => editorScanRepo(false);
 
-// Advanced toggle
 $('ed-advanced-toggle').onclick = () => {
     const el = $('ed-advanced');
     const open = el.style.display === 'block';
@@ -1212,7 +1193,6 @@ $('ed-advanced-toggle').onclick = () => {
     $('ed-advanced-toggle').textContent = open ? '⚙ Advanced ▾' : '⚙ Advanced ▴';
 };
 
-// Direct URL load (with extension detection)
 $('ed-url-add').onclick = () => {
     const raw = $('ed-url').value.trim();
     if (!raw) return;
@@ -1244,9 +1224,6 @@ $('ed-url-add').onclick = () => {
     $('ed-url').value = '';
 };
 
-// =====================================================================
-//  EDITOR MOBILE FLIGHT CONTROLS
-// =====================================================================
 let edJoyId = null;
 let edJoyVec = { x: 0, y: 0 };
 let edFlyUp = false, edFlyDown = false;
@@ -1305,9 +1282,6 @@ function edResetJoystick() {
     edJoyKnob.style.transform = 'translate(0px,0px)';
 }
 
-// =====================================================================
-//  EDITOR TOGGLE / KEYBOARD / UPDATE
-// =====================================================================
 let autoScanDone = false;
 
 $('editor-toggle').onclick = () => {
@@ -1325,7 +1299,6 @@ $('editor-toggle').onclick = () => {
         editorControl.enabled = true;
         editorToast('Editor ON');
 
-        // Auto-scan the sibling assets/ folder once
         if (!autoScanDone) {
             autoScanDone = true;
             editorScanRepo(true);
@@ -1449,21 +1422,13 @@ function editorToast(t) {
     edToastT = setTimeout(() => el.classList.remove('on'), 1800);
 }
 
-// =====================================================================
-//  INIT
-// =====================================================================
 setTimeout(() => {
     const l = document.getElementById('loading-screen'); l.style.opacity = '0';
     setTimeout(() => { l.style.display = 'none'; document.getElementById('ui-layer').style.opacity = '1'; }, 800);
 }, 2000);
 updateHUD();
-
-// Pre-fill the repo input (visible only in Advanced) so it's ready when you open the editor
 autoFillRepo();
 
-// =====================================================================
-//  MAIN LOOP
-// =====================================================================
 const clock = new THREE.Clock();
 const _tip = new THREE.Vector3(), _dir = new THREE.Vector3(), _right = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 let bob = 0;
