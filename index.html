@@ -152,6 +152,8 @@ body.editor #ed-alt-btns{display:flex}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 </head>
 <body>
@@ -266,7 +268,7 @@ body.editor #ed-alt-btns{display:flex}
 
   <button class="ed-btn primary" id="ed-export" style="margin-top:14px">GET SCENE DATA</button>
   <div id="ed-hint">
-    Supports <b>.glb</b> · <b>.gltf</b> · <b>.obj</b> (+ <b>.mtl</b> auto-loaded)<br>
+    Supports <b>.glb</b> · <b>.gltf</b> · <b>.obj</b> (+ <b>.mtl</b>) · <b>.fbx</b><br>
     <b>Desktop:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>Space</kbd>/<kbd>C</kbd> up/down · <kbd>Shift</kbd> boost · Drag to look<br>
     <b>Mobile:</b> joystick to move · drag screen to look · ▲▼ buttons for up/down<br>
     <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gizmo mode · <kbd>F</kbd> focus · <kbd>Del</kbd> remove
@@ -839,6 +841,7 @@ const gltfLoader = new THREE.GLTFLoader();
 function editorLoadModel(fileInfo) {
     const ext = (fileInfo.ext || '').toLowerCase();
     if (ext === 'obj') return editorLoadOBJ(fileInfo.url, fileInfo.name, fileInfo.path);
+    if (ext === 'fbx') return editorLoadFBX(fileInfo.url, fileInfo.name, fileInfo.path);
     return editorLoadGLB(fileInfo.url, fileInfo.name, fileInfo.path);
 }
 
@@ -892,7 +895,18 @@ function editorLoadOBJ(url, name, assetPath) {
     );
 }
 
-// FIXED: this is the function that makes Poly Pizza OBJs visible
+function editorLoadFBX(url, name, assetPath) {
+    editorToast('Loading FBX ' + name + '…');
+    const loader = new THREE.FBXLoader();
+    loader.load(url,
+        fbx => {
+            finalizeModel(fbx, name, assetPath, url, false);
+        },
+        undefined,
+        err => { console.error(err); editorToast('Failed to load ' + name); }
+    );
+}
+
 function finalizeModel(obj, name, assetPath, url, withMtl) {
     let meshCount = 0;
     obj.traverse(o => {
@@ -904,7 +918,7 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
         if (o.material) {
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
-                m.side = THREE.DoubleSide;         // flipped-normals fix
+                m.side = THREE.DoubleSide;
                 m.transparent = false;
                 if (m.opacity !== undefined && m.opacity < 0.05) m.opacity = 1;
                 if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
@@ -931,7 +945,6 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     obj.userData.url = url;
     scene.add(obj);
 
-    // Size check + auto-normalize
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3());
     const dims = [size.x, size.y, size.z];
@@ -1012,10 +1025,10 @@ async function editorScanRepo(silent) {
 
         editorRepoBase = { repo: raw, branch, folder };
         editorRemoteFiles = data
-            .filter(f => /\.(glb|gltf|obj)$/i.test(f.name))
+            .filter(f => /\.(glb|gltf|obj|fbx)$/i.test(f.name))
             .map(f => {
                 const ext = f.name.split('.').pop().toLowerCase();
-                const baseName = f.name.replace(/\.(glb|gltf|obj)$/i, '');
+                const baseName = f.name.replace(/\.(glb|gltf|obj|fbx)$/i, '');
                 return {
                     name: baseName,
                     path: `${folder}/${f.name}`,
@@ -1034,7 +1047,7 @@ async function editorScanRepo(silent) {
 
 function renderEditorRemote() {
     const el = $('ed-remote');
-    if (!editorRemoteFiles.length) { el.innerHTML = '<div class="ed-empty">No .glb / .gltf / .obj found</div>'; return; }
+    if (!editorRemoteFiles.length) { el.innerHTML = '<div class="ed-empty">No .glb / .gltf / .obj / .fbx found</div>'; return; }
     el.innerHTML = '';
     editorRemoteFiles.forEach(f => {
         const added = editorModels.some(m => m.assetPath === f.path);
@@ -1198,28 +1211,29 @@ $('ed-url-add').onclick = () => {
     if (!raw) return;
 
     let url = raw;
-    let name = raw.split('/').pop().replace(/\.(glb|gltf|obj)(\?.*)?$/i, '');
+    let name = raw.split('/').pop().replace(/\.(glb|gltf|obj|fbx)(\?.*)?$/i, '');
     let ext = '';
-    const em0 = raw.match(/\.(glb|gltf|obj)(\?.*)?$/i);
+    const em0 = raw.match(/\.(glb|gltf|obj|fbx)(\?.*)?$/i);
     if (em0) ext = em0[1].toLowerCase();
 
     if (/^https?:\/\//.test(raw)) {
         const fname = raw.split('/').pop().split('?')[0];
-        name = fname.replace(/\.(glb|gltf|obj)$/i, '');
-        const em = fname.match(/\.(glb|gltf|obj)$/i);
+        name = fname.replace(/\.(glb|gltf|obj|fbx)$/i, '');
+        const em = fname.match(/\.(glb|gltf|obj|fbx)$/i);
         if (em) ext = em[1].toLowerCase();
     } else if (editorRepoBase) {
         const clean = raw.replace(/^\/+/, '');
         const path = clean.startsWith(editorRepoBase.folder + '/') ? clean : (editorRepoBase.folder + '/' + clean);
         url = `https://raw.githubusercontent.com/${editorRepoBase.repo}/${editorRepoBase.branch}/${path}`;
         const fname = path.split('/').pop();
-        name = fname.replace(/\.(glb|gltf|obj)$/i, '');
-        const em = fname.match(/\.(glb|gltf|obj)$/i);
+        name = fname.replace(/\.(glb|gltf|obj|fbx)$/i, '');
+        const em = fname.match(/\.(glb|gltf|obj|fbx)$/i);
         if (em) ext = em[1].toLowerCase();
     }
 
     if (!ext) ext = 'glb';
     if (ext === 'obj') editorLoadOBJ(url, name, raw);
+    else if (ext === 'fbx') editorLoadFBX(url, name, raw);
     else editorLoadGLB(url, name, raw);
     $('ed-url').value = '';
 };
