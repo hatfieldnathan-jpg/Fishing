@@ -67,6 +67,7 @@ body.editor #editor-panel{display:block}
 #editor-panel input{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);color:#fff;
   padding:6px 8px;border-radius:7px;font-size:11.5px;font-family:inherit;outline:none;box-sizing:border-box}
 #editor-panel input:focus{border-color:#00c6ff}
+#editor-panel input[type="color"]{width:100%;height:34px;padding:2px;cursor:pointer;border-radius:8px}
 .ed-row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ed-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
 .ed-btn{width:100%;padding:9px;border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:11.5px;
@@ -77,7 +78,7 @@ body.editor #editor-panel{display:block}
 .ed-btn.primary:hover{filter:brightness(1.1)}
 .ed-btn.danger{background:rgba(255,85,102,.16);border:1px solid #ff5566;color:#ff5566}
 .ed-btn.danger:hover{background:#ff5566;color:#fff}
-.ed-btn.mode{flex:1;margin-top:0}
+.ed-btn.mode{flex:1;margin-top:0;position:relative}
 .ed-modes{display:flex;gap:5px;margin-bottom:6px}
 .ed-modes .ed-btn.on{background:linear-gradient(135deg,#00c6ff,#0072ff);color:#fff;border-color:transparent}
 .ed-list{margin-top:6px;max-height:170px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:9px}
@@ -108,6 +109,17 @@ body.editor #editor-panel{display:block}
 .ed-shape:hover{background:linear-gradient(135deg,#00c6ff,#0072ff);border-color:transparent;
   box-shadow:0 4px 14px rgba(0,198,255,.4);transform:translateY(-2px)}
 .ed-shape:active{transform:scale(.9)}
+
+.ed-axis-x{color:#ff5555}.ed-axis-y{color:#66ff66}.ed-axis-z{color:#66aaff}
+.axis-tag{display:inline-block;font-weight:900;font-size:9px;letter-spacing:.5px;padding:1px 4px;border-radius:4px;margin-right:4px;background:rgba(255,255,255,.06)}
+.axis-tag.x{color:#ff7070}.axis-tag.y{color:#8df08d}.axis-tag.z{color:#8db8ff}
+
+#save-indicator{position:absolute;bottom:20px;right:20px;z-index:55;background:rgba(15,25,35,.85);
+  color:#38ef7d;padding:8px 16px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.5px;
+  border:1px solid rgba(56,239,125,.4);opacity:0;transition:opacity .3s;pointer-events:none;
+  backdrop-filter:blur(10px)}
+#save-indicator.on{opacity:1}
+body.editor #save-indicator{bottom:20px;right:20px}
 
 #editor-debug{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -302,6 +314,7 @@ body.editor #ed-alt-btns{display:flex}
 </div>
 
 <button id="editor-toggle">✎ SCENE EDITOR</button>
+<div id="save-indicator">💾 Saved</div>
 
 <div id="editor-debug">
   <h2>
@@ -334,6 +347,9 @@ body.editor #ed-alt-btns{display:flex}
       <input id="ed-url" placeholder="assets/island.glb">
       <button class="ed-btn" id="ed-url-add" style="margin-top:0">Load</button>
     </div>
+    <div class="ed-sep"></div>
+    <button class="ed-btn danger" id="ed-clear-saved">🗑 Clear Saved Scene</button>
+    <div style="font-size:9.5px;color:#8b98a8;margin-top:5px;line-height:1.4">Wipes the local storage. Refresh to reset the editor to a fresh state.</div>
   </div>
 
   <div class="ed-sep"></div>
@@ -372,6 +388,9 @@ body.editor #ed-alt-btns{display:flex}
     <button class="ed-btn mode" data-mode="rotate">Rotate</button>
     <button class="ed-btn mode" data-mode="scale">Scale</button>
   </div>
+  <div style="font-size:10px;color:#8b98a8;line-height:1.4;margin-top:4px">
+    Scale mode: drag the <span class="axis-tag x">X</span><span class="axis-tag y">Y</span><span class="axis-tag z">Z</span> boxes at the end of each arm to stretch one axis. Drag the <b>center cube</b> to scale all three at once.
+  </div>
 
   <div class="ed-sep"></div>
   <h4>Imported Models (<span id="ed-count">0</span>)</h4>
@@ -384,21 +403,45 @@ body.editor #ed-alt-btns{display:flex}
   <div id="ed-prop-body" style="display:none">
     <label>Name</label><input id="ed-name">
     <label>Asset Path</label><input id="ed-path" readonly style="opacity:.65">
+
+    <label>Color <span style="color:#8b98a8;text-transform:none;letter-spacing:0">(tints all selected)</span></label>
+    <div class="ed-row2">
+      <input type="color" id="ed-color" value="#cccccc">
+      <button class="ed-btn" id="ed-color-random" style="margin-top:0">🎲 Random</button>
+    </div>
+
     <label>Position (x, y, z)</label>
     <div class="ed-row3">
-      <input id="ed-px" type="number" step="0.1"><input id="ed-py" type="number" step="0.1"><input id="ed-pz" type="number" step="0.1">
+      <input id="ed-px" type="number" step="0.1" title="X">
+      <input id="ed-py" type="number" step="0.1" title="Y">
+      <input id="ed-pz" type="number" step="0.1" title="Z">
     </div>
+
     <label>Rotation ° (x, y, z)</label>
     <div class="ed-row3">
-      <input id="ed-rx" type="number" step="5"><input id="ed-ry" type="number" step="5"><input id="ed-rz" type="number" step="5">
+      <input id="ed-rx" type="number" step="5" title="X°">
+      <input id="ed-ry" type="number" step="5" title="Y°">
+      <input id="ed-rz" type="number" step="5" title="Z°">
     </div>
-    <label>Scale (x, y, z)</label>
-    <div class="ed-row3">
-      <input id="ed-sx" type="number" step="0.1"><input id="ed-sy" type="number" step="0.1"><input id="ed-sz" type="number" step="0.1">
-    </div>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:9px;text-transform:none;letter-spacing:0;cursor:pointer;color:#e6edf3">
-      <input type="checkbox" id="ed-uniform" checked style="width:auto"> Uniform scale
+
+    <label>Scale (x, y, z)
+      <span style="color:#8b98a8;text-transform:none;letter-spacing:0">— each axis independent</span>
     </label>
+    <div class="ed-row3">
+      <input id="ed-sx" type="number" step="0.1" title="X scale">
+      <input id="ed-sy" type="number" step="0.1" title="Y scale">
+      <input id="ed-sz" type="number" step="0.1" title="Z scale">
+    </div>
+    <div class="ed-row3" style="margin-top:6px">
+      <button class="ed-btn" id="ed-scale-reset" style="margin-top:0;font-size:10.5px;padding:6px">↺ Reset</button>
+      <button class="ed-btn" id="ed-scale-uniform" style="margin-top:0;font-size:10.5px;padding:6px">▢ 1:1:1</button>
+      <button class="ed-btn" id="ed-scale-match" style="margin-top:0;font-size:10.5px;padding:6px">→ Match</button>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:6px;margin-top:9px;text-transform:none;letter-spacing:0;cursor:pointer;color:#e6edf3">
+      <input type="checkbox" id="ed-uniform" checked style="width:auto"> Lock inputs (typing X sets Y+Z)
+    </label>
+
     <div class="ed-row3" style="margin-top:8px">
       <button class="ed-btn" id="ed-focus" style="margin-top:0">Focus</button>
       <button class="ed-btn" id="ed-dup" style="margin-top:0">Dup</button>
@@ -517,6 +560,8 @@ const rods = [
 
 const SAVE_KEY = 'ultimateFishingSaveLite';
 const PRESCENE_KEY = 'ultimateFishingPreScene';
+const EDITOR_SCENE_KEY = 'ultimateFishingEditorScene';
+
 function saveGame() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify({money, inventory, fishIndex, totalCaughtCount, rodsOwned: rods.map(r => r.owned), currentRodIndex})); } catch (e) {}
     updateHUD();
@@ -1061,6 +1106,7 @@ let editorBox = null;
 let editorSelection = [];
 let editorBoxes = [];
 let dragSnapshot = null;
+let restoreInProgress = false;
 const editorKeys = { w:false, a:false, s:false, d:false, space:false, c:false, shift:false };
 let savedCam = { pos: new THREE.Vector3(0,2,0), quat: new THREE.Quaternion() };
 let editorGizmoDragging = false;
@@ -1070,10 +1116,14 @@ editorControl.setSize(0.85);
 editorControl.visible = false;
 editorControl.enabled = false;
 scene.add(editorControl);
-editorControl.addEventListener('dragging-changed', e => { if (e.value) { editorBoxes.forEach(b => b.visible = false); if (editorBox) editorBox.visible = false; } else { editorBoxes.forEach(b => b.visible = true); if (editorBox) editorBox.visible = true; } });
+
+editorControl.addEventListener('dragging-changed', e => {
+    if (e.value) { editorBoxes.forEach(b => b.visible = false); if (editorBox) editorBox.visible = false; }
+    else { editorBoxes.forEach(b => b.visible = true); if (editorBox) editorBox.visible = true; }
+});
+
 editorControl.addEventListener('objectChange', () => {
     if (dragSnapshot) {
-        const dp = editorSelected.position.clone().sub(dragSnapshot.primary.pos);
         const dq = editorSelected.quaternion.clone().multiply(dragSnapshot.primary.quat.clone().invert());
         const ds = new THREE.Vector3(
             dragSnapshot.primary.scale.x !== 0 ? editorSelected.scale.x / dragSnapshot.primary.scale.x : 1,
@@ -1092,7 +1142,9 @@ editorControl.addEventListener('objectChange', () => {
     editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
     if (editorBox && editorSelected) editorBox.setFromObject(editorSelected);
     syncEditorPropsFromObj();
+    saveEditorScene();
 });
+
 editorControl.addEventListener('mouseDown', () => {
     editorGizmoDragging = true;
     if (editorSelection.length > 1 && editorSelected) {
@@ -1102,20 +1154,191 @@ editorControl.addEventListener('mouseDown', () => {
         };
     } else { dragSnapshot = null; }
 });
-editorControl.addEventListener('mouseUp', () => { setTimeout(() => { editorGizmoDragging = false; dragSnapshot = null; }, 0); });
+editorControl.addEventListener('mouseUp', () => {
+    setTimeout(() => { editorGizmoDragging = false; dragSnapshot = null; }, 0);
+    saveEditorScene(true);
+});
 
+// ============= PERSISTENCE LAYER =============
+let saveTimer = null;
+let savedIndicatorTimer = null;
+
+function showSavedIndicator() {
+    const el = $('save-indicator');
+    if (!el) return;
+    el.classList.add('on');
+    clearTimeout(savedIndicatorTimer);
+    savedIndicatorTimer = setTimeout(() => el.classList.remove('on'), 900);
+}
+
+function serializeObject(m) {
+    const p = m.object.position, r = m.object.rotation, s = m.object.scale;
+    const f = n => Math.round(n * 1000) / 1000;
+    let color = null;
+    m.object.traverse(o => {
+        if (color) return;
+        if (o.isMesh && o.material) {
+            const mm = Array.isArray(o.material) ? o.material[0] : o.material;
+            if (mm && mm.color) color = '#' + mm.color.getHexString();
+        }
+    });
+    const base = {
+        name: m.name,
+        isPrimitive: !!m.isPrimitive,
+        position: [f(p.x), f(p.y), f(p.z)],
+        rotation: [f(r.x), f(r.y), f(r.z)],
+        scale: [f(s.x), f(s.y), f(s.z)],
+        color: color
+    };
+    if (m.isPrimitive) {
+        base.primitiveType = m.primitiveType;
+        base.primitiveArgs = m.primitiveArgs;
+    } else {
+        base.assetPath = m.assetPath;
+        base.url = m.url;
+    }
+    return base;
+}
+
+function saveEditorScene(immediate) {
+    if (restoreInProgress) return;
+    clearTimeout(saveTimer);
+    const doSave = () => {
+        try {
+            const data = editorModels.map(serializeObject);
+            const payload = {
+                version: 1,
+                savedAt: Date.now(),
+                models: data,
+                cam: {
+                    pos: [camera.position.x, camera.position.y, camera.position.z],
+                    yaw: cameraAngles.yaw,
+                    pitch: cameraAngles.pitch
+                }
+            };
+            localStorage.setItem(EDITOR_SCENE_KEY, JSON.stringify(payload));
+            showSavedIndicator();
+        } catch (e) {
+            console.warn('[editor] save failed', e);
+        }
+    };
+    if (immediate) doSave();
+    else saveTimer = setTimeout(doSave, 400);
+}
+
+function applyColorToObject(obj, hex) {
+    obj.traverse(o => {
+        if (!o.isMesh || !o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+            if (m.color) { m.color.set(hex); m.needsUpdate = true; }
+        });
+    });
+}
+
+function restoreModelEntry(entry, onComplete) {
+    const path = entry.assetPath || '';
+    const ext = path.split('.').pop().toLowerCase();
+    const cb = (obj) => {
+        try {
+            obj.name = entry.name || obj.name;
+            obj.position.fromArray(entry.position);
+            obj.rotation.set(entry.rotation[0], entry.rotation[1], entry.rotation[2]);
+            obj.scale.fromArray(entry.scale);
+            if (entry.color) applyColorToObject(obj, entry.color);
+            obj.userData.assetPath = entry.assetPath;
+            obj.userData.url = entry.url;
+
+            // Skip if already in scene (safety)
+            if (!obj.parent) scene.add(obj);
+
+            editorModels.push({
+                name: entry.name,
+                assetPath: entry.assetPath,
+                url: entry.url,
+                object: obj,
+                isPrimitive: false
+            });
+        } catch (e) { console.warn('[restore] apply failed', e); }
+        onComplete();
+    };
+
+    try {
+        if (ext === 'obj') editorLoadOBJ(entry.url, entry.name, entry.assetPath, cb);
+        else if (ext === 'fbx') editorLoadFBX(entry.url, entry.name, entry.assetPath, cb);
+        else editorLoadGLB(entry.url, entry.name, entry.assetPath, cb);
+    } catch (e) {
+        console.warn('[restore] dispatch failed for', entry.name, e);
+        onComplete();
+    }
+}
+
+async function loadEditorScene() {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(EDITOR_SCENE_KEY)); }
+    catch (e) { return; }
+    if (!saved || !saved.models || !saved.models.length) return;
+
+    restoreInProgress = true;
+    const promises = [];
+    let restoredCount = 0;
+    let failedCount = 0;
+
+    for (const entry of saved.models) {
+        if (entry.isPrimitive) {
+            try {
+                createPrimitive(entry.primitiveType, {
+                    name: entry.name,
+                    position: entry.position,
+                    rotation: entry.rotation,
+                    scale: entry.scale,
+                    color: entry.color,
+                    silent: true
+                });
+                restoredCount++;
+            } catch (e) {
+                failedCount++;
+                console.warn('[restore] primitive failed', entry, e);
+            }
+        } else if (entry.url) {
+            promises.push(new Promise(resolve => {
+                restoreModelEntry(entry, () => { restoredCount++; resolve(); });
+            }));
+        } else {
+            failedCount++;
+        }
+    }
+
+    try { await Promise.all(promises); } catch (e) { console.warn(e); }
+
+    restoreInProgress = false;
+    refreshEditorSceneList();
+    if (restoredCount > 0) setTimeout(() => editorToast('Restored ' + restoredCount + ' object' + (restoredCount > 1 ? 's' : '') + ' from last session'), 600);
+    if (failedCount > 0) console.warn('[editor] ' + failedCount + ' objects could not be restored');
+}
+
+$('ed-clear-saved').onclick = () => {
+    if (!confirm('Clear saved editor scene? This will NOT delete the objects currently on screen — it only wipes the saved copy.')) return;
+    try { localStorage.removeItem(EDITOR_SCENE_KEY); } catch (e) {}
+    editorToast('Saved scene cleared');
+};
+
+// ============= ASSET LOADING =============
 const assetLoadingManager = new THREE.LoadingManager();
 let currentAssetBaseURL = '';
 assetLoadingManager.setURLModifier(url => {
     if (!url) return url;
-    if (/^(https?|data|blob):/i.test(url)) { dbg('info', 'Texture (absolute)', url); return url; }
+    if (/^(https?|data|blob):/i.test(url)) { if (!restoreInProgress) dbg('info', 'Texture (absolute)', url); return url; }
     if (!currentAssetBaseURL) return url;
     let resolved;
     try { resolved = new URL(url, currentAssetBaseURL).href; } catch (e) { resolved = currentAssetBaseURL + url.replace(/^\.?\/+/, ''); }
-    dbg('info', 'Texture resolving: "' + url + '"', resolved);
+    if (!restoreInProgress) dbg('info', 'Texture resolving: "' + url + '"', resolved);
     return resolved;
 });
-assetLoadingManager.onError = url => { debugState.texturesFail++; dbg('fail', 'Could not load texture (404 / CORS / bad path):', url); };
+assetLoadingManager.onError = url => {
+    debugState.texturesFail++;
+    if (!restoreInProgress) dbg('fail', 'Could not load texture (404 / CORS / bad path):', url);
+};
 
 const dracoLoader = new THREE.DRACOLoader();
 dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
@@ -1147,71 +1370,100 @@ function editorLoadModel(fileInfo) {
     return editorLoadGLB(fileInfo.url, fileInfo.name, fileInfo.path);
 }
 
-function editorLoadGLB(url, name, assetPath) {
-    editorToast('Loading ' + name + '…');
+function editorLoadGLB(url, name, assetPath, restoreCb) {
+    if (!restoreCb) editorToast('Loading ' + name + '…');
     currentAssetBaseURL = url.substring(0, url.lastIndexOf('/') + 1);
-    dbg('info', 'Asset folder (for textures / .bin):', currentAssetBaseURL);
+    if (!restoreCb) dbg('info', 'Asset folder (for textures / .bin):', currentAssetBaseURL);
     const loader = new THREE.GLTFLoader(assetLoadingManager);
     try { loader.setDRACOLoader(dracoLoader); } catch (e) {}
     try { loader.setKTX2Loader(getKTX2Loader()); } catch (e) {}
     loader.load(url,
-        gltf => { dbg('ok', 'GLB/GLTF parsed OK'); finalizeModel(gltf.scene, name, assetPath, url, false); },
+        gltf => { if (!restoreCb) dbg('ok', 'GLB/GLTF parsed OK'); finalizeModel(gltf.scene, name, assetPath, url, false, restoreCb); },
         undefined,
-        err => { console.error(err); dbg('fail', 'GLB parse failed', url); editorToast('Failed to load ' + name); }
+        err => {
+            console.error(err);
+            if (!restoreCb) { dbg('fail', 'GLB parse failed', url); editorToast('Failed to load ' + name); }
+            if (restoreCb) restoreCb(null);
+        }
     );
 }
 
-function editorLoadOBJ(url, name, assetPath) {
-    editorToast('Loading OBJ ' + name + '…');
+function editorLoadOBJ(url, name, assetPath, restoreCb) {
+    if (!restoreCb) editorToast('Loading OBJ ' + name + '…');
     const slash = url.lastIndexOf('/');
     const baseURL = url.substring(0, slash + 1);
     const objFilename = url.substring(slash + 1);
     const mtlFilename = objFilename.replace(/\.obj(\?.*)?$/i, '.mtl$1');
     currentAssetBaseURL = baseURL;
-    dbg('info', 'Asset folder (for textures):', baseURL);
-    dbg('info', 'Looking for MTL file:', baseURL + mtlFilename);
+    if (!restoreCb) {
+        dbg('info', 'Asset folder (for textures):', baseURL);
+        dbg('info', 'Looking for MTL file:', baseURL + mtlFilename);
+    }
     const loadPlain = () => {
-        dbg('warn', 'Loading OBJ without MTL — colors will be default');
+        if (!restoreCb) dbg('warn', 'Loading OBJ without MTL — colors will be default');
         const objLoader = new THREE.OBJLoader(assetLoadingManager);
         objLoader.setPath(baseURL);
-        objLoader.load(objFilename, obj => { dbg('ok', 'OBJ parsed (no MTL)'); finalizeModel(obj, name, assetPath, url, false); }, undefined, err => { console.error(err); dbg('fail', 'OBJ parse failed', url); editorToast('Failed to load ' + name); });
+        objLoader.load(objFilename,
+            obj => { if (!restoreCb) dbg('ok', 'OBJ parsed (no MTL)'); finalizeModel(obj, name, assetPath, url, false, restoreCb); },
+            undefined,
+            err => {
+                console.error(err);
+                if (!restoreCb) { dbg('fail', 'OBJ parse failed', url); editorToast('Failed to load ' + name); }
+                if (restoreCb) restoreCb(null);
+            }
+        );
     };
     const mtlLoader = new THREE.MTLLoader(assetLoadingManager);
     mtlLoader.setPath(baseURL);
     mtlLoader.load(mtlFilename,
         mtl => {
-            dbg('ok', 'MTL file found and parsed');
+            if (!restoreCb) dbg('ok', 'MTL file found and parsed');
             try { mtl.preload(); } catch (e) {}
             const objLoader = new THREE.OBJLoader(assetLoadingManager);
             objLoader.setPath(baseURL);
             objLoader.setMaterials(mtl);
             objLoader.load(objFilename,
-                obj => { dbg('ok', 'OBJ parsed (with MTL)'); finalizeModel(obj, name, assetPath, url, true); },
+                obj => { if (!restoreCb) dbg('ok', 'OBJ parsed (with MTL)'); finalizeModel(obj, name, assetPath, url, true, restoreCb); },
                 undefined,
-                err => { console.warn('OBJ w/ MTL failed, retrying plain', err); dbg('warn', 'OBJ w/ MTL failed, falling back to plain'); loadPlain(); }
+                err => {
+                    console.warn('OBJ w/ MTL failed, retrying plain', err);
+                    if (!restoreCb) dbg('warn', 'OBJ w/ MTL failed, falling back to plain');
+                    loadPlain();
+                }
             );
         },
         undefined,
-        () => { dbg('warn', 'No MTL file found — model will have no texture'); loadPlain(); }
+        () => {
+            if (!restoreCb) dbg('warn', 'No MTL file found — model will have no texture');
+            loadPlain();
+        }
     );
 }
 
-function editorLoadFBX(url, name, assetPath) {
-    editorToast('Loading FBX ' + name + '…');
+function editorLoadFBX(url, name, assetPath, restoreCb) {
+    if (!restoreCb) editorToast('Loading FBX ' + name + '…');
     const slash = url.lastIndexOf('/');
     currentAssetBaseURL = url.substring(0, slash + 1);
-    dbg('info', 'Asset folder (for textures):', currentAssetBaseURL);
+    if (!restoreCb) dbg('info', 'Asset folder (for textures):', currentAssetBaseURL);
     const loader = new THREE.FBXLoader(assetLoadingManager);
     loader.load(url,
-        fbx => { dbg('ok', 'FBX parsed OK'); finalizeModel(fbx, name, assetPath, url, false); },
+        fbx => { if (!restoreCb) dbg('ok', 'FBX parsed OK'); finalizeModel(fbx, name, assetPath, url, false, restoreCb); },
         undefined,
-        err => { console.error(err); dbg('fail', 'FBX parse failed', url); editorToast('Failed to load ' + name); }
+        err => {
+            console.error(err);
+            if (!restoreCb) { dbg('fail', 'FBX parse failed', url); editorToast('Failed to load ' + name); }
+            if (restoreCb) restoreCb(null);
+        }
     );
 }
 
-function finalizeModel(obj, name, assetPath, url, withMtl) {
+function finalizeModel(obj, name, assetPath, url, withMtl, restoreCb) {
+    if (!obj) { if (restoreCb) restoreCb(null); return; }
+
     let meshCount = 0, matCount = 0, matWithMapCount = 0;
     const seenTextures = new Set();
+    const dbgFn = restoreCb ? (()=>{}) : dbg;
+
     obj.traverse(o => {
         if (!o.isMesh && !o.isLine && !o.isPoints) return;
         meshCount++;
@@ -1234,20 +1486,20 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
                 if (!seenTextures.has(dedupKey)) {
                     seenTextures.add(dedupKey);
                     if (img && img instanceof HTMLImageElement) {
-                        if (img.complete && img.naturalWidth > 0) { debugState.texturesOk++; dbg('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight + ' · material "' + (m.name||'unnamed') + '"', img.src); }
+                        if (img.complete && img.naturalWidth > 0) { debugState.texturesOk++; dbgFn('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight + ' · material "' + (m.name||'unnamed') + '"', img.src); }
                         else {
-                            img.addEventListener('load', () => { debugState.texturesOk++; dbg('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight, img.src); renderDebug(); });
-                            img.addEventListener('error', () => { debugState.texturesFail++; dbg('fail', 'Texture image failed to load', img.src); renderDebug(); });
-                            dbg('info', 'Texture loading… material "' + (m.name||'unnamed') + '"', src);
+                            img.addEventListener('load', () => { debugState.texturesOk++; dbgFn('ok', 'Texture loaded ' + img.naturalWidth + '×' + img.naturalHeight, img.src); if (!restoreCb) renderDebug(); });
+                            img.addEventListener('error', () => { debugState.texturesFail++; dbgFn('fail', 'Texture image failed to load', img.src); if (!restoreCb) renderDebug(); });
+                            dbgFn('info', 'Texture loading… material "' + (m.name||'unnamed') + '"', src);
                         }
-                    } else if (img && img.width > 0) { debugState.texturesOk++; dbg('ok', 'Texture ' + img.width + '×' + img.height, src); }
-                    else { debugState.texturesFail++; dbg('fail', 'Material references texture but image empty/missing · "' + (m.name||'unnamed') + '"', src); }
+                    } else if (img && img.width > 0) { debugState.texturesOk++; dbgFn('ok', 'Texture ' + img.width + '×' + img.height, src); }
+                    else { debugState.texturesFail++; dbgFn('fail', 'Material references texture but image empty/missing · "' + (m.name||'unnamed') + '"', src); }
                 }
                 m.map.anisotropy = 8;
                 m.map.encoding = THREE.sRGBEncoding;
                 m.map.needsUpdate = true;
             } else {
-                dbg('warn', 'Material "' + (m.name||'unnamed') + '" has NO texture · color #' + (m.color ? m.color.getHexString() : '??????'));
+                dbgFn('warn', 'Material "' + (m.name||'unnamed') + '" has NO texture · color #' + (m.color ? m.color.getHexString() : '??????'));
             }
             if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
             if (m.alphaMap) m.alphaMap.needsUpdate = true;
@@ -1255,11 +1507,21 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
             m.visible = true; m.needsUpdate = true;
         });
     });
+
     debugState.meshes = meshCount; debugState.materials = matCount;
-    if (meshCount === 0) dbg('fail', 'Model has NO meshes/lines/points');
-    else if (matWithMapCount === 0) dbg('warn', 'All ' + matCount + ' material(s) have NO textures — flat colors only. Did you upload the .png/.jpg/.mtl files?');
-    else dbg('ok', 'Finalized: ' + meshCount + ' mesh(es), ' + matCount + ' material(s), ' + matWithMapCount + ' with textures');
-    obj.name = name; obj.userData.assetPath = assetPath; obj.userData.url = url; scene.add(obj);
+    if (!restoreCb) {
+        if (meshCount === 0) dbg('fail', 'Model has NO meshes/lines/points');
+        else if (matWithMapCount === 0) dbg('warn', 'All ' + matCount + ' material(s) have NO textures — flat colors only. Did you upload the .png/.jpg/.mtl files?');
+        else dbg('ok', 'Finalized: ' + meshCount + ' mesh(es), ' + matCount + ' material(s), ' + matWithMapCount + ' with textures');
+    }
+
+    obj.name = name; obj.userData.assetPath = assetPath; obj.userData.url = url;
+
+    // Restore mode → hand off to the callback, skip auto-scale / ground drop / list add
+    if (restoreCb) { restoreCb(obj); return; }
+
+    scene.add(obj);
+
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
@@ -1271,18 +1533,21 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     }
     const box2 = new THREE.Box3().setFromObject(obj);
     if (isFinite(box2.min.y)) obj.position.y -= box2.min.y;
+
     editorModels.push({ name, assetPath, url, object: obj });
     refreshEditorSceneList();
     editorSelect(obj);
     renderDebug();
     editorToast('Loaded: ' + name + (withMtl ? ' (MTL)' : ''));
+    saveEditorScene(true);
 }
 
 // ============= PRIMITIVES =============
 const primitiveCounter = {};
 
-function createPrimitive(type) {
-    if (!editorMode) { editorToast('Open the editor first'); return; }
+function createPrimitive(type, opts) {
+    opts = opts || {};
+    if (!editorMode && !opts.silent) { editorToast('Open the editor first'); return; }
 
     let geo;
     const defaults = {};
@@ -1348,7 +1613,10 @@ function createPrimitive(type) {
             break;
         }
         case 'text': {
-            if (!loadedFont) { editorToast('Font still loading — try again in a moment'); return; }
+            if (!loadedFont) {
+                if (!opts.silent) editorToast('Font still loading — try again in a moment');
+                return;
+            }
             const textGeo = new THREE.TextGeometry('HELLO', { font: loadedFont, size: 0.55, height: 0.18, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.015, bevelSegments: 2 });
             textGeo.center();
             geo = textGeo;
@@ -1358,8 +1626,10 @@ function createPrimitive(type) {
         default: return;
     }
 
-    primitiveCounter[type] = (primitiveCounter[type] || 0) + 1;
-    const name = type.charAt(0).toUpperCase() + type.slice(1) + '_' + primitiveCounter[type];
+    if (!opts.name) {
+        primitiveCounter[type] = (primitiveCounter[type] || 0) + 1;
+    }
+    const name = opts.name || (type.charAt(0).toUpperCase() + type.slice(1) + '_' + primitiveCounter[type]);
 
     const palette = {
         box: 0xff6b6b, sphere: 0x4ecdc4, cylinder: 0xffe66d, cone: 0xff8c42,
@@ -1369,8 +1639,10 @@ function createPrimitive(type) {
         tube: 0xa29bfe, polyhedron: 0xfd79a8, text: 0x00b894
     };
 
+    const startColor = opts.color || ('#' + new THREE.Color(palette[type] || 0xcccccc).getHexString());
+
     const mat = new THREE.MeshStandardMaterial({
-        color: palette[type] || 0xcccccc,
+        color: new THREE.Color(startColor),
         metalness: 0.15,
         roughness: 0.55,
         side: (type === 'plane' || type === 'ring' || type === 'circle') ? THREE.DoubleSide : THREE.FrontSide
@@ -1381,11 +1653,17 @@ function createPrimitive(type) {
     mesh.receiveShadow = true;
     mesh.name = name;
 
-    const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
-    mesh.position.copy(camera.position).addScaledVector(dir, 6);
-    geo.computeBoundingBox();
-    const bb = geo.boundingBox;
-    if (bb && isFinite(bb.min.y)) mesh.position.y -= bb.min.y;
+    if (opts.position) {
+        mesh.position.fromArray(opts.position);
+    } else {
+        const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+        mesh.position.copy(camera.position).addScaledVector(dir, 6);
+        geo.computeBoundingBox();
+        const bb = geo.boundingBox;
+        if (bb && isFinite(bb.min.y)) mesh.position.y -= bb.min.y;
+    }
+    if (opts.rotation) mesh.rotation.set(opts.rotation[0], opts.rotation[1], opts.rotation[2]);
+    if (opts.scale) mesh.scale.fromArray(opts.scale);
 
     mesh.userData.primitiveType = type;
     mesh.userData.primitiveArgs = defaults[type];
@@ -1398,9 +1676,12 @@ function createPrimitive(type) {
         isPrimitive: true, primitiveType: type, primitiveArgs: defaults[type]
     });
 
-    refreshEditorSceneList();
-    editorSelect(mesh);
-    editorToast('Added ' + name);
+    if (!opts.silent) {
+        refreshEditorSceneList();
+        editorSelect(mesh);
+        editorToast('Added ' + name);
+        saveEditorScene(true);
+    }
 }
 
 document.querySelectorAll('.ed-shape').forEach(btn => {
@@ -1592,9 +1873,6 @@ function updateSelectionVisuals() {
     });
 }
 
-function showEditorBox(obj) { /* handled by updateSelectionVisuals */ }
-function hideEditorBox() { if (editorBox) { scene.remove(editorBox); editorBox.geometry.dispose(); editorBox = null; } }
-
 function refreshEditorSceneList() {
     const el = $('ed-scene');
     $('ed-count').textContent = editorModels.length;
@@ -1608,7 +1886,7 @@ function refreshEditorSceneList() {
             <button class="mini" title="Delete">✕</button>`;
         row.onclick = (e) => editorSelect(m.object, e.shiftKey || e.ctrlKey || e.metaKey);
         const [eye, del] = row.querySelectorAll('.mini');
-        eye.onclick = e => { e.stopPropagation(); m.object.visible = !m.object.visible; refreshEditorSceneList(); };
+        eye.onclick = e => { e.stopPropagation(); m.object.visible = !m.object.visible; refreshEditorSceneList(); saveEditorScene(true); };
         del.onclick = e => { e.stopPropagation(); editorRemoveModel(m); };
         el.appendChild(row);
     });
@@ -1650,6 +1928,7 @@ function duplicateSelection(offsetX = 1.5) {
     $('ed-sel-count').textContent = editorSelection.length;
     refreshEditorSceneList();
     editorToast('Duplicated ' + newSelection.length + ' object' + (newSelection.length > 1 ? 's' : ''));
+    saveEditorScene(true);
 }
 
 function editorRemoveModel(m) {
@@ -1671,6 +1950,7 @@ function editorRemoveModel(m) {
     $('ed-sel-count').textContent = editorSelection.length;
     refreshEditorSceneList();
     renderEditorRemote();
+    saveEditorScene(true);
 }
 
 const ED_RAD = Math.PI / 180;
@@ -1678,6 +1958,17 @@ const edRound = v => Math.round(v * 1000) / 1000;
 function syncEditorPropsFromObj() {
     if (!editorSelected) return;
     const p = editorSelected.position, r = editorSelected.rotation, s = editorSelected.scale;
+
+    let foundColor = null;
+    editorSelected.traverse(o => {
+        if (foundColor) return;
+        if (o.isMesh && o.material) {
+            const m = Array.isArray(o.material) ? o.material[0] : o.material;
+            if (m && m.color) foundColor = '#' + m.color.getHexString();
+        }
+    });
+    if (foundColor) $('ed-color').value = foundColor;
+
     $('ed-name').value = editorSelected.name || '';
     $('ed-path').value = editorSelected.userData.assetPath || '';
     $('ed-px').value = edRound(p.x); $('ed-py').value = edRound(p.y); $('ed-pz').value = edRound(p.z);
@@ -1686,7 +1977,13 @@ function syncEditorPropsFromObj() {
 }
 function edBind(id, fn) {
     const el = $(id);
-    el.addEventListener('input', () => { if (editorSelected) { fn(parseFloat(el.value) || 0); editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); }); } });
+    el.addEventListener('input', () => {
+        if (editorSelected) {
+            fn(parseFloat(el.value) || 0);
+            editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
+            saveEditorScene();
+        }
+    });
     el.addEventListener('blur', () => { if (editorSelected) syncEditorPropsFromObj(); });
 }
 edBind('ed-px', v => editorSelected.position.x = v);
@@ -1695,9 +1992,56 @@ edBind('ed-pz', v => editorSelected.position.z = v);
 edBind('ed-rx', v => editorSelected.rotation.x = v * ED_RAD);
 edBind('ed-ry', v => editorSelected.rotation.y = v * ED_RAD);
 edBind('ed-rz', v => editorSelected.rotation.z = v * ED_RAD);
-edBind('ed-sx', v => { editorSelected.scale.x = v; if ($('ed-uniform').checked) { editorSelected.scale.y = editorSelected.scale.z = v; syncEditorPropsFromObj(); } });
-edBind('ed-sy', v => { editorSelected.scale.y = v; if ($('ed-uniform').checked) { editorSelected.scale.x = editorSelected.scale.z = v; syncEditorPropsFromObj(); } });
-edBind('ed-sz', v => { editorSelected.scale.z = v; if ($('ed-uniform').checked) { editorSelected.scale.x = editorSelected.scale.y = v; syncEditorPropsFromObj(); } });
+
+edBind('ed-sx', v => {
+    editorSelected.scale.x = v;
+    if ($('ed-uniform').checked) { editorSelected.scale.y = v; editorSelected.scale.z = v; }
+});
+edBind('ed-sy', v => {
+    editorSelected.scale.y = v;
+    if ($('ed-uniform').checked) { editorSelected.scale.x = v; editorSelected.scale.z = v; }
+});
+edBind('ed-sz', v => {
+    editorSelected.scale.z = v;
+    if ($('ed-uniform').checked) { editorSelected.scale.x = v; editorSelected.scale.y = v; }
+});
+
+$('ed-scale-reset').onclick = () => {
+    if (!editorSelected) return;
+    editorSelected.scale.set(1, 1, 1);
+    syncEditorPropsFromObj();
+    editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
+    saveEditorScene(true);
+};
+$('ed-scale-uniform').onclick = () => {
+    if (!editorSelected) return;
+    const avg = (editorSelected.scale.x + editorSelected.scale.y + editorSelected.scale.z) / 3;
+    editorSelected.scale.set(avg, avg, avg);
+    syncEditorPropsFromObj();
+    editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
+    saveEditorScene(true);
+};
+$('ed-scale-match').onclick = () => {
+    if (!editorSelected || editorSelection.length < 2) { editorToast('Select 2+ objects to match scale'); return; }
+    const src = editorSelected.scale.clone();
+    editorSelection.forEach(obj => { if (obj !== editorSelected) obj.scale.copy(src); });
+    editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
+    editorToast('Scale matched to primary');
+    saveEditorScene(true);
+};
+
+function applyColor(hex) {
+    if (!editorSelection.length) return;
+    editorSelection.forEach(obj => applyColorToObject(obj, hex));
+    editorToast('Recolored ' + editorSelection.length + ' object' + (editorSelection.length > 1 ? 's' : ''));
+    saveEditorScene(true);
+}
+$('ed-color').addEventListener('input', e => applyColor(e.target.value));
+$('ed-color-random').onclick = () => {
+    const hex = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+    $('ed-color').value = hex;
+    applyColor(hex);
+};
 
 $('ed-name').addEventListener('input', e => {
     if (!editorSelected) return;
@@ -1705,6 +2049,7 @@ $('ed-name').addEventListener('input', e => {
     const m = editorModels.find(x => x.object === editorSelected);
     if (m) m.name = e.target.value;
     refreshEditorSceneList();
+    saveEditorScene();
 });
 
 $('ed-focus').onclick = () => {
@@ -1954,9 +2299,15 @@ function editorToast(t) {
     edToastT = setTimeout(() => el.classList.remove('on'), 1800);
 }
 
+// ============= STARTUP =============
 setTimeout(() => {
     const l = document.getElementById('loading-screen'); l.style.opacity = '0';
-    setTimeout(() => { l.style.display = 'none'; document.getElementById('ui-layer').style.opacity = '1'; }, 800);
+    setTimeout(() => {
+        l.style.display = 'none';
+        document.getElementById('ui-layer').style.opacity = '1';
+        // Restore saved editor scene after loading screen clears
+        loadEditorScene().catch(e => console.warn('[restore] failed', e));
+    }, 800);
 }, 2000);
 updateHUD();
 autoFillRepo();
