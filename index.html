@@ -13,7 +13,7 @@ body,html{margin:0;padding:0;overflow:hidden;background:#5ca8ff;font-family:'Seg
 .water-wave{animation:wave 2s infinite ease-in-out}.fishing-line-anim{animation:pull 2s infinite ease-in-out}
 @keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes pull{0%,100%{y2:150}50%{y2:130}}
-@keyframes loadbar{0%{width:0}100%{width:100%}}
+@keyframes loadbar{0%{width:100%}}
 #ui-layer{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity 1s}
 #hud{position:absolute;top:20px;left:20px;background:rgba(15,25,35,.6);backdrop-filter:blur(12px);color:#fff;padding:15px 25px;border-radius:16px;border:1px solid rgba(255,255,255,.1);font-weight:bold;font-size:18px;box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:auto}
 #crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 6px rgba(0,0,0,.8)}
@@ -101,8 +101,14 @@ body.editor #editor-panel{display:block}
 #ed-advanced{display:none;margin-top:6px;padding:8px;border-radius:9px;background:rgba(0,0,0,.25);
   border:1px solid rgba(255,255,255,.06)}
 #ed-debug-toggle{font-size:10px;padding:6px;opacity:.7;margin-top:6px}
+.ed-shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.ed-shape{aspect-ratio:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  border-radius:9px;color:#e6edf3;font-size:20px;cursor:pointer;transition:.12s;
+  display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.ed-shape:hover{background:linear-gradient(135deg,#00c6ff,#0072ff);border-color:transparent;
+  box-shadow:0 4px 14px rgba(0,198,255,.4);transform:translateY(-2px)}
+.ed-shape:active{transform:scale(.9)}
 
-/* BIG DEBUG PANEL */
 #editor-debug{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   z-index:9999; display:none; pointer-events:auto;
@@ -164,7 +170,6 @@ body.editor.has-debug #editor-debug{display:block}
 #editor-debug .hint b{color:#fff}
 #editor-debug .hint code{background:rgba(0,0,0,.5); padding:2px 7px; border-radius:5px; color:#a8d8ff}
 
-/* BLEND WARNING MODAL */
 #blend-modal{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(7px);z-index:99999;
   display:none;align-items:center;justify-content:center;padding:24px}
 #blend-modal.on{display:flex}
@@ -242,6 +247,7 @@ body.editor #ed-alt-btns{display:flex}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/KTX2Loader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
@@ -336,6 +342,30 @@ body.editor #ed-alt-btns{display:flex}
   <div class="ed-list" id="ed-prescene" style="max-height:200px"><div class="ed-empty">Loading…</div></div>
 
   <div class="ed-sep"></div>
+  <h4>Add Primitive</h4>
+  <div class="ed-shapes">
+    <button class="ed-shape" data-shape="box" title="Cube / Box">▢</button>
+    <button class="ed-shape" data-shape="sphere" title="Sphere">●</button>
+    <button class="ed-shape" data-shape="cylinder" title="Cylinder">⬮</button>
+    <button class="ed-shape" data-shape="cone" title="Cone">▲</button>
+    <button class="ed-shape" data-shape="torus" title="Torus / Ring">◎</button>
+    <button class="ed-shape" data-shape="plane" title="Plane">▭</button>
+    <button class="ed-shape" data-shape="capsule" title="Capsule">⬭</button>
+    <button class="ed-shape" data-shape="tetra" title="Tetrahedron">◭</button>
+    <button class="ed-shape" data-shape="icosa" title="Icosahedron">❖</button>
+    <button class="ed-shape" data-shape="octa" title="Octahedron">◆</button>
+    <button class="ed-shape" data-shape="dodeca" title="Dodecahedron">⬟</button>
+    <button class="ed-shape" data-shape="torusKnot" title="Torus Knot">❋</button>
+    <button class="ed-shape" data-shape="ring" title="Ring">◯</button>
+    <button class="ed-shape" data-shape="circle" title="Circle">○</button>
+    <button class="ed-shape" data-shape="lathe" title="Lathe (Vase)">⚱</button>
+    <button class="ed-shape" data-shape="star" title="Extruded Star">★</button>
+    <button class="ed-shape" data-shape="tube" title="Tube (Helix)">〰</button>
+    <button class="ed-shape" data-shape="polyhedron" title="Polyhedron">⬡</button>
+    <button class="ed-shape" data-shape="text" title="3D Text — HELLO">T</button>
+  </div>
+
+  <div class="ed-sep"></div>
   <h4>Transform Mode</h4>
   <div class="ed-modes">
     <button class="ed-btn mode on" data-mode="translate">Move</button>
@@ -348,7 +378,8 @@ body.editor #ed-alt-btns{display:flex}
   <div class="ed-list" id="ed-scene"><div class="ed-empty">Nothing loaded</div></div>
 
   <div class="ed-sep"></div>
-  <h4>Selected Object</h4>
+  <h4>Selected (<span id="ed-sel-count">0</span>)</h4>
+  <div style="font-size:10px;color:#8b98a8;margin-bottom:6px;line-height:1.4">Shift+click to add · drag gizmo moves all · Ctrl+D to duplicate</div>
   <div id="ed-no-sel" style="color:#8b98a8;font-size:11px">Click a model to select it</div>
   <div id="ed-prop-body" style="display:none">
     <label>Name</label><input id="ed-name">
@@ -368,9 +399,10 @@ body.editor #ed-alt-btns{display:flex}
     <label style="display:flex;align-items:center;gap:6px;margin-top:9px;text-transform:none;letter-spacing:0;cursor:pointer;color:#e6edf3">
       <input type="checkbox" id="ed-uniform" checked style="width:auto"> Uniform scale
     </label>
-    <div class="ed-row2" style="margin-top:8px">
+    <div class="ed-row3" style="margin-top:8px">
       <button class="ed-btn" id="ed-focus" style="margin-top:0">Focus</button>
-      <button class="ed-btn danger" id="ed-del" style="margin-top:0">Delete</button>
+      <button class="ed-btn" id="ed-dup" style="margin-top:0">Dup</button>
+      <button class="ed-btn danger" id="ed-del" style="margin-top:0">Del</button>
     </div>
   </div>
 
@@ -378,7 +410,7 @@ body.editor #ed-alt-btns{display:flex}
   <div id="ed-hint">
     Supports <b>.glb</b> · <b>.gltf</b> (+ <b>.bin</b>) · <b>.obj</b> (+ <b>.mtl</b>) · <b>.fbx</b><br>
     <b>.blend</b>? Export to .glb in Blender first.<br>
-    <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gizmo · <kbd>F</kbd> focus · <kbd>Del</kbd> remove · <kbd>Esc</kbd> deselect
+    <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gizmo · <kbd>F</kbd> focus · <kbd>Ctrl+D</kbd> dup · <kbd>Del</kbd> remove · <kbd>Esc</kbd> deselect
   </div>
 </div>
 
@@ -608,13 +640,11 @@ const shopWoodMat = stdMat({ map: woodTex('#a63a2e', '#551111', [2, 2]), roughne
 const sellWoodMat = stdMat({ map: woodTex('#2e8b4a', '#115511'), roughness: 0.8 });
 const shadow = (m, c = true, r = true) => { m.castShadow = c; m.receiveShadow = r; return m; };
 
-// Pre-placed registry
 const prePlacedGroups = [];
 function registerPreScene(id, name, objects) {
     prePlacedGroups.push({ id, name, objects: objects.filter(Boolean), visible: true, deleted: false });
 }
 
-// Dock
 const dockGroup = new THREE.Group(); scene.add(dockGroup);
 const planks = new THREE.InstancedMesh(new THREE.BoxGeometry(20, 0.3, 0.92), dockWoodMat, 21);
 planks.castShadow = planks.receiveShadow = true;
@@ -633,7 +663,6 @@ for (const x of [-9.7, -3.3, 3.3, 9.7]) for (const z of [-9.7, -3.3, 3.3, 9.7]) 
 }
 registerPreScene('dock', 'Dock', [dockGroup]);
 
-// Lanterns
 const lanternGroup = new THREE.Group(); scene.add(lanternGroup);
 const lanternPos = [[-9.5, 9.5], [9.5, 9.5], [-9.5, 0], [9.5, 0]];
 const lanternLights = [];
@@ -645,7 +674,6 @@ lanternPos.forEach(([x, z], i) => {
 });
 registerPreScene('lanterns', 'Lantern Posts', [lanternGroup]);
 
-// Ropes
 const ropeGroup = new THREE.Group(); scene.add(ropeGroup);
 function ropeBetween(a, b) {
     const pts = []; for (let i = 0; i <= 16; i++) { const s = i / 16; pts.push(new THREE.Vector3(a[0] + (b[0] - a[0]) * s, 2.3 - Math.sin(s * Math.PI) * 0.35, a[1] + (b[1] - a[1]) * s)); }
@@ -654,7 +682,6 @@ function ropeBetween(a, b) {
 ropeBetween(lanternPos[0], lanternPos[2]); ropeBetween(lanternPos[1], lanternPos[3]);
 registerPreScene('ropes', 'Ropes', [ropeGroup]);
 
-// Crates
 const crateGroup = new THREE.Group(); scene.add(crateGroup);
 const crateMat = stdMat({ map: woodTex('#b08a5a', '#5a3a1a'), roughness: 0.9 });
 [[-5, 8.4, 0.9], [-4.1, 8.6, 0.7], [-4.7, 8.5, 0.65, 0.9]].forEach(([x, z, s, y]) => {
@@ -662,7 +689,6 @@ const crateMat = stdMat({ map: woodTex('#b08a5a', '#5a3a1a'), roughness: 0.9 });
 });
 registerPreScene('crates', 'Crates', [crateGroup]);
 
-// Barrels
 const barrelGroup = new THREE.Group(); scene.add(barrelGroup);
 [[5.5, 8.3], [6.4, 8.7]].forEach(([x, z]) => {
     const b = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.34, 0.9, 14), stdMat({ map: woodTex('#7a4f2a', '#3a2010'), roughness: 0.85 }))); b.position.set(x, 0.95, z); barrelGroup.add(b);
@@ -670,7 +696,6 @@ const barrelGroup = new THREE.Group(); scene.add(barrelGroup);
 });
 registerPreScene('barrels', 'Barrels', [barrelGroup]);
 
-// Shop
 const shopGroup = new THREE.Group(); shopGroup.position.set(-8, 0.5, -6);
 const shopBody = shadow(new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), shopWoodMat)); shopBody.position.y = 1.5; shopGroup.add(shopBody);
 const roofMat = stdMat({ color: 0x2a2a30, roughness: 0.9 });
@@ -686,7 +711,6 @@ scene.add(shopGroup);
 const shopGlow = new THREE.PointLight(0xffc060, 0.8, 8, 2); shopGlow.position.set(-8, 2, -3.5); scene.add(shopGlow);
 registerPreScene('shop', 'Tackle Shop', [shopGroup, shopGlow]);
 
-// Market
 function stripeTex() {
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
     for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#f4f4f0' : '#2eaa5a'; x.fillRect(i * 32, 0, 32, 64); }
@@ -1034,6 +1058,9 @@ let editorControl = null;
 let editorModels = [];
 let editorSelected = null;
 let editorBox = null;
+let editorSelection = [];
+let editorBoxes = [];
+let dragSnapshot = null;
 const editorKeys = { w:false, a:false, s:false, d:false, space:false, c:false, shift:false };
 let savedCam = { pos: new THREE.Vector3(0,2,0), quat: new THREE.Quaternion() };
 let editorGizmoDragging = false;
@@ -1043,10 +1070,39 @@ editorControl.setSize(0.85);
 editorControl.visible = false;
 editorControl.enabled = false;
 scene.add(editorControl);
-editorControl.addEventListener('dragging-changed', e => { if (e.value) { if (editorBox) editorBox.visible = false; } else { if (editorBox) editorBox.visible = true; } });
-editorControl.addEventListener('objectChange', () => { if (editorBox && editorSelected) editorBox.setFromObject(editorSelected); syncEditorPropsFromObj(); });
-editorControl.addEventListener('mouseDown', () => { editorGizmoDragging = true; });
-editorControl.addEventListener('mouseUp', () => { setTimeout(() => editorGizmoDragging = false, 0); });
+editorControl.addEventListener('dragging-changed', e => { if (e.value) { editorBoxes.forEach(b => b.visible = false); if (editorBox) editorBox.visible = false; } else { editorBoxes.forEach(b => b.visible = true); if (editorBox) editorBox.visible = true; } });
+editorControl.addEventListener('objectChange', () => {
+    if (dragSnapshot) {
+        const dp = editorSelected.position.clone().sub(dragSnapshot.primary.pos);
+        const dq = editorSelected.quaternion.clone().multiply(dragSnapshot.primary.quat.clone().invert());
+        const ds = new THREE.Vector3(
+            dragSnapshot.primary.scale.x !== 0 ? editorSelected.scale.x / dragSnapshot.primary.scale.x : 1,
+            dragSnapshot.primary.scale.y !== 0 ? editorSelected.scale.y / dragSnapshot.primary.scale.y : 1,
+            dragSnapshot.primary.scale.z !== 0 ? editorSelected.scale.z / dragSnapshot.primary.scale.z : 1
+        );
+        dragSnapshot.others.forEach(item => {
+            const offset = item.pos.clone().sub(dragSnapshot.primary.pos);
+            offset.applyQuaternion(dq);
+            offset.multiply(ds);
+            item.obj.position.copy(editorSelected.position).add(offset);
+            item.obj.quaternion.copy(dq).multiply(item.quat);
+            item.obj.scale.set(item.scale.x * ds.x, item.scale.y * ds.y, item.scale.z * ds.z);
+        });
+    }
+    editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
+    if (editorBox && editorSelected) editorBox.setFromObject(editorSelected);
+    syncEditorPropsFromObj();
+});
+editorControl.addEventListener('mouseDown', () => {
+    editorGizmoDragging = true;
+    if (editorSelection.length > 1 && editorSelected) {
+        dragSnapshot = {
+            primary: { pos: editorSelected.position.clone(), quat: editorSelected.quaternion.clone(), scale: editorSelected.scale.clone() },
+            others: editorSelection.filter(o => o !== editorSelected).map(o => ({ obj: o, pos: o.position.clone(), quat: o.quaternion.clone(), scale: o.scale.clone() }))
+        };
+    } else { dragSnapshot = null; }
+});
+editorControl.addEventListener('mouseUp', () => { setTimeout(() => { editorGizmoDragging = false; dragSnapshot = null; }, 0); });
 
 const assetLoadingManager = new THREE.LoadingManager();
 let currentAssetBaseURL = '';
@@ -1068,6 +1124,15 @@ function getKTX2Loader() {
     if (!ktx2Loader) { ktx2Loader = new THREE.KTX2Loader(); ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/basis/'); ktx2Loader.detectSupport(renderer); }
     return ktx2Loader;
 }
+
+let loadedFont = null;
+const primitiveFontLoader = new THREE.FontLoader();
+primitiveFontLoader.load(
+    'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_regular.typeface.json',
+    font => { loadedFont = font; console.log('[editor] font loaded'); },
+    undefined,
+    err => console.warn('[editor] font failed to load:', err)
+);
 
 function showBlendWarning(filename) { $('blend-filename').textContent = filename; $('blend-modal').classList.add('on'); }
 $('blend-close').onclick = () => $('blend-modal').classList.remove('on');
@@ -1213,7 +1278,136 @@ function finalizeModel(obj, name, assetPath, url, withMtl) {
     editorToast('Loaded: ' + name + (withMtl ? ' (MTL)' : ''));
 }
 
-// PRE-SCENE UI
+// ============= PRIMITIVES =============
+const primitiveCounter = {};
+
+function createPrimitive(type) {
+    if (!editorMode) { editorToast('Open the editor first'); return; }
+
+    let geo;
+    const defaults = {};
+
+    switch (type) {
+        case 'box': geo = new THREE.BoxGeometry(1, 1, 1); defaults.box = [1,1,1]; break;
+        case 'sphere': geo = new THREE.SphereGeometry(0.5, 32, 20); defaults.sphere = [0.5,32,20]; break;
+        case 'cylinder': geo = new THREE.CylinderGeometry(0.4, 0.4, 1, 24); defaults.cylinder = [0.4,0.4,1,24]; break;
+        case 'cone': geo = new THREE.ConeGeometry(0.5, 1, 24); defaults.cone = [0.5,1,24]; break;
+        case 'torus': geo = new THREE.TorusGeometry(0.4, 0.15, 16, 40); defaults.torus = [0.4,0.15,16,40]; break;
+        case 'plane': geo = new THREE.PlaneGeometry(2, 2); defaults.plane = [2,2]; break;
+        case 'capsule': geo = new THREE.CapsuleGeometry(0.3, 0.8, 8, 16); defaults.capsule = [0.3,0.8,8,16]; break;
+        case 'tetra': geo = new THREE.TetrahedronGeometry(0.6); defaults.tetra = [0.6]; break;
+        case 'icosa': geo = new THREE.IcosahedronGeometry(0.6); defaults.icosa = [0.6]; break;
+        case 'octa': geo = new THREE.OctahedronGeometry(0.6); defaults.octa = [0.6]; break;
+        case 'dodeca': geo = new THREE.DodecahedronGeometry(0.6); defaults.dodeca = [0.6]; break;
+        case 'torusKnot': geo = new THREE.TorusKnotGeometry(0.35, 0.12, 64, 12); defaults.torusKnot = [0.35,0.12,64,12]; break;
+        case 'ring': geo = new THREE.RingGeometry(0.2, 0.5, 48); defaults.ring = [0.2, 0.5, 48]; break;
+        case 'circle': geo = new THREE.CircleGeometry(0.5, 48); defaults.circle = [0.5, 48]; break;
+        case 'lathe': {
+            const pts = [];
+            const STEPS = 14;
+            for (let i = 0; i <= STEPS; i++) {
+                const t = i / STEPS;
+                const r = 0.12 + Math.sin(t * Math.PI) * 0.34;
+                pts.push(new THREE.Vector2(r, t * 1.2));
+            }
+            geo = new THREE.LatheGeometry(pts, 32);
+            defaults.lathe = [0.12, 0.34, 1.2];
+            break;
+        }
+        case 'star': {
+            const shape = new THREE.Shape();
+            const spikes = 5, outer = 0.55, inner = 0.24;
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = (i % 2 === 0) ? outer : inner;
+                const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+                const x = Math.cos(a) * r, y = Math.sin(a) * r;
+                if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+            }
+            shape.closePath();
+            geo = new THREE.ExtrudeGeometry(shape, { depth: 0.2, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2, curveSegments: 8 });
+            geo.center();
+            defaults.star = [0.55, 0.24, 0.2];
+            break;
+        }
+        case 'tube': {
+            const pts = [];
+            for (let i = 0; i <= 48; i++) {
+                const t = i / 48;
+                pts.push(new THREE.Vector3(Math.cos(t * Math.PI * 4) * 0.4, t * 1.4, Math.sin(t * Math.PI * 4) * 0.4));
+            }
+            const curve = new THREE.CatmullRomCurve3(pts);
+            geo = new THREE.TubeGeometry(curve, 120, 0.09, 12, false);
+            defaults.tube = [0.09, 1.4, 4];
+            break;
+        }
+        case 'polyhedron': {
+            const verts = [-1,-1,-1, 1,-1,-1, 1,1,-1, -1,1,-1, -1,-1,1, 1,-1,1, 1,1,1, -1,1,1];
+            const idx = [2,1,0, 0,3,2, 0,4,7, 7,3,0, 0,1,5, 5,4,0, 1,2,6, 6,5,1, 2,3,7, 7,6,2, 4,5,6, 6,7,4];
+            geo = new THREE.PolyhedronGeometry(verts, idx, 0.7, 0);
+            defaults.polyhedron = [0.7];
+            break;
+        }
+        case 'text': {
+            if (!loadedFont) { editorToast('Font still loading — try again in a moment'); return; }
+            const textGeo = new THREE.TextGeometry('HELLO', { font: loadedFont, size: 0.55, height: 0.18, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.015, bevelSegments: 2 });
+            textGeo.center();
+            geo = textGeo;
+            defaults.text = [0.55, 0.18, 'HELLO'];
+            break;
+        }
+        default: return;
+    }
+
+    primitiveCounter[type] = (primitiveCounter[type] || 0) + 1;
+    const name = type.charAt(0).toUpperCase() + type.slice(1) + '_' + primitiveCounter[type];
+
+    const palette = {
+        box: 0xff6b6b, sphere: 0x4ecdc4, cylinder: 0xffe66d, cone: 0xff8c42,
+        torus: 0xaa96da, plane: 0xa8d8ea, capsule: 0xfcbad3, tetra: 0x95e1d3,
+        icosa: 0xf38181, octa: 0xffd93d, dodeca: 0x6bcb77, torusKnot: 0xc780fa,
+        ring: 0x7ec8e3, circle: 0xb8e994, lathe: 0xffa502, star: 0xffd32a,
+        tube: 0xa29bfe, polyhedron: 0xfd79a8, text: 0x00b894
+    };
+
+    const mat = new THREE.MeshStandardMaterial({
+        color: palette[type] || 0xcccccc,
+        metalness: 0.15,
+        roughness: 0.55,
+        side: (type === 'plane' || type === 'ring' || type === 'circle') ? THREE.DoubleSide : THREE.FrontSide
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.name = name;
+
+    const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+    mesh.position.copy(camera.position).addScaledVector(dir, 6);
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox;
+    if (bb && isFinite(bb.min.y)) mesh.position.y -= bb.min.y;
+
+    mesh.userData.primitiveType = type;
+    mesh.userData.primitiveArgs = defaults[type];
+    mesh.userData.assetPath = 'primitive:' + type;
+    mesh.userData.url = '';
+
+    scene.add(mesh);
+    editorModels.push({
+        name, assetPath: 'primitive:' + type, url: '', object: mesh,
+        isPrimitive: true, primitiveType: type, primitiveArgs: defaults[type]
+    });
+
+    refreshEditorSceneList();
+    editorSelect(mesh);
+    editorToast('Added ' + name);
+}
+
+document.querySelectorAll('.ed-shape').forEach(btn => {
+    btn.onclick = () => createPrimitive(btn.dataset.shape);
+});
+
+// ============= PRE-SCENE UI =============
 function renderPreSceneList() {
     const el = $('ed-prescene');
     el.innerHTML = '';
@@ -1340,37 +1534,67 @@ const editorNDC = new THREE.Vector2();
 let editorPointerDown = null;
 let editorDragged = false;
 
-function editorSelect(obj) {
-    editorSelected = obj;
-    if (obj) {
-        editorControl.attach(obj);
-        editorControl.visible = true;
-        editorControl.enabled = true;
-        showEditorBox(obj);
+function editorSelect(obj, additive = false) {
+    if (!obj) {
+        editorSelected = null;
+        editorSelection = [];
+    } else if (additive) {
+        const idx = editorSelection.indexOf(obj);
+        if (idx >= 0) {
+            editorSelection.splice(idx, 1);
+            if (editorSelected === obj) editorSelected = editorSelection[editorSelection.length - 1] || null;
+        } else {
+            editorSelection.push(obj);
+            editorSelected = obj;
+        }
+    } else {
+        editorSelection = [obj];
+        editorSelected = obj;
+    }
+
+    updateSelectionVisuals();
+
+    if (editorSelected) {
         $('ed-no-sel').style.display = 'none';
         $('ed-prop-body').style.display = 'block';
         syncEditorPropsFromObj();
     } else {
-        editorControl.detach();
-        editorControl.visible = false;
-        editorControl.enabled = false;
-        hideEditorBox();
         $('ed-no-sel').style.display = 'block';
         $('ed-prop-body').style.display = 'none';
     }
+    $('ed-sel-count').textContent = editorSelection.length;
     refreshEditorSceneList();
 }
-function showEditorBox(obj) {
-    hideEditorBox();
-    editorBox = new THREE.BoxHelper(obj, 0x00c6ff);
-    editorBox.material.depthTest = false;
-    editorBox.material.transparent = true;
-    editorBox.material.opacity = 0.9;
-    scene.add(editorBox);
-}
-function hideEditorBox() {
+
+function updateSelectionVisuals() {
+    editorBoxes.forEach(b => { scene.remove(b); b.geometry.dispose(); });
+    editorBoxes = [];
     if (editorBox) { scene.remove(editorBox); editorBox.geometry.dispose(); editorBox = null; }
+
+    if (editorSelection.length === 0) {
+        editorControl.detach();
+        editorControl.visible = false;
+        editorControl.enabled = false;
+        return;
+    }
+
+    editorControl.attach(editorSelected);
+    editorControl.visible = true;
+    editorControl.enabled = true;
+
+    editorSelection.forEach(obj => {
+        const b = new THREE.BoxHelper(obj, editorSelection.length > 1 ? 0xffb84d : 0x00c6ff);
+        b.material.depthTest = false;
+        b.material.transparent = true;
+        b.material.opacity = 0.9;
+        scene.add(b);
+        editorBoxes.push(b);
+    });
 }
+
+function showEditorBox(obj) { /* handled by updateSelectionVisuals */ }
+function hideEditorBox() { if (editorBox) { scene.remove(editorBox); editorBox.geometry.dispose(); editorBox = null; } }
+
 function refreshEditorSceneList() {
     const el = $('ed-scene');
     $('ed-count').textContent = editorModels.length;
@@ -1378,19 +1602,60 @@ function refreshEditorSceneList() {
     el.innerHTML = '';
     editorModels.forEach(m => {
         const row = document.createElement('div');
-        row.className = 'ed-item' + (editorSelected === m.object ? ' sel' : '');
+        row.className = 'ed-item' + (editorSelection.indexOf(m.object) >= 0 ? ' sel' : '');
         row.innerHTML = `<span class="nm">${m.name}</span>
             <button class="mini" title="Toggle visibility">${m.object.visible ? '👁' : '🚫'}</button>
             <button class="mini" title="Delete">✕</button>`;
-        row.onclick = () => editorSelect(m.object);
+        row.onclick = (e) => editorSelect(m.object, e.shiftKey || e.ctrlKey || e.metaKey);
         const [eye, del] = row.querySelectorAll('.mini');
         eye.onclick = e => { e.stopPropagation(); m.object.visible = !m.object.visible; refreshEditorSceneList(); };
         del.onclick = e => { e.stopPropagation(); editorRemoveModel(m); };
         el.appendChild(row);
     });
 }
+
+function duplicateSelection(offsetX = 1.5) {
+    if (editorSelection.length === 0) { editorToast('Nothing selected'); return; }
+    const srcSelection = [...editorSelection];
+    const newSelection = [];
+
+    srcSelection.forEach(obj => {
+        const clone = obj.clone(true);
+        clone.traverse(o => {
+            if (o.isMesh && o.material) {
+                o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone();
+            }
+        });
+        clone.position.x += offsetX;
+        clone.name = (obj.name || 'Object') + '_copy';
+        clone.userData = Object.assign({}, obj.userData);
+        scene.add(clone);
+
+        const src = editorModels.find(m => m.object === obj);
+        editorModels.push({
+            name: clone.name,
+            assetPath: src ? src.assetPath : clone.userData.assetPath || '',
+            url: src ? src.url : clone.userData.url || '',
+            object: clone,
+            isPrimitive: src ? src.isPrimitive : false,
+            primitiveType: src ? src.primitiveType : clone.userData.primitiveType,
+            primitiveArgs: src ? src.primitiveArgs : clone.userData.primitiveArgs
+        });
+        newSelection.push(clone);
+    });
+
+    editorSelection = newSelection;
+    editorSelected = newSelection[0];
+    updateSelectionVisuals();
+    $('ed-sel-count').textContent = editorSelection.length;
+    refreshEditorSceneList();
+    editorToast('Duplicated ' + newSelection.length + ' object' + (newSelection.length > 1 ? 's' : ''));
+}
+
 function editorRemoveModel(m) {
-    if (editorSelected === m.object) editorSelect(null);
+    const idx = editorSelection.indexOf(m.object);
+    if (idx >= 0) editorSelection.splice(idx, 1);
+    if (editorSelected === m.object) editorSelected = editorSelection[editorSelection.length - 1] || null;
     scene.remove(m.object);
     m.object.traverse(o => {
         if (o.isMesh) {
@@ -1402,6 +1667,8 @@ function editorRemoveModel(m) {
         }
     });
     editorModels.splice(editorModels.indexOf(m), 1);
+    updateSelectionVisuals();
+    $('ed-sel-count').textContent = editorSelection.length;
     refreshEditorSceneList();
     renderEditorRemote();
 }
@@ -1419,7 +1686,7 @@ function syncEditorPropsFromObj() {
 }
 function edBind(id, fn) {
     const el = $(id);
-    el.addEventListener('input', () => { if (editorSelected) { fn(parseFloat(el.value) || 0); if (editorBox) editorBox.setFromObject(editorSelected); } });
+    el.addEventListener('input', () => { if (editorSelected) { fn(parseFloat(el.value) || 0); editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); }); } });
     el.addEventListener('blur', () => { if (editorSelected) syncEditorPropsFromObj(); });
 }
 edBind('ed-px', v => editorSelected.position.x = v);
@@ -1451,10 +1718,17 @@ $('ed-focus').onclick = () => {
     const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
     cameraAngles.yaw = e.y; cameraAngles.pitch = e.x;
 };
+$('ed-dup').onclick = () => duplicateSelection(1.5);
 $('ed-del').onclick = () => {
-    if (!editorSelected) return;
-    const m = editorModels.find(x => x.object === editorSelected);
-    if (m) editorRemoveModel(m);
+    if (!editorSelection.length) return;
+    [...editorSelection].forEach(obj => {
+        const m = editorModels.find(x => x.object === obj);
+        if (m) editorRemoveModel(m);
+    });
+    editorSelection = [];
+    editorSelected = null;
+    updateSelectionVisuals();
+    $('ed-sel-count').textContent = '0';
 };
 
 document.querySelectorAll('.ed-btn.mode').forEach(btn => {
@@ -1579,7 +1853,19 @@ document.addEventListener('keydown', e => {
     if (k === '2') { editorControl.setMode('rotate'); document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.toggle('on', b.dataset.mode==='rotate')); }
     if (k === '3') { editorControl.setMode('scale'); document.querySelectorAll('.ed-btn.mode').forEach(b => b.classList.toggle('on', b.dataset.mode==='scale')); }
     if (k === 'f') $('ed-focus').click();
-    if (k === 'delete' || k === 'backspace') { if (editorSelected) { const m = editorModels.find(x => x.object === editorSelected); if (m) editorRemoveModel(m); } }
+    if (k === 'delete' || k === 'backspace') {
+        if (editorSelection.length) {
+            [...editorSelection].forEach(obj => {
+                const m = editorModels.find(x => x.object === obj);
+                if (m) editorRemoveModel(m);
+            });
+            editorSelection = [];
+            editorSelected = null;
+            updateSelectionVisuals();
+            $('ed-sel-count').textContent = '0';
+        }
+    }
+    if (k === 'd' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); duplicateSelection(1.5); }
     if (k === 'escape') editorSelect(null);
 });
 document.addEventListener('keyup', e => {
@@ -1622,11 +1908,14 @@ canvasEl.addEventListener('pointerup', e => {
     editorRaycaster.setFromCamera(editorNDC, camera);
     const objs = editorModels.filter(m => m.object.visible).map(m => m.object);
     const hits = editorRaycaster.intersectObjects(objs, true);
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
     if (hits.length) {
         let o = hits[0].object;
         while (o.parent && !editorModels.some(m => m.object === o)) o = o.parent;
-        editorSelect(o);
-    } else { editorSelect(null); }
+        editorSelect(o, additive);
+    } else {
+        if (!additive) editorSelect(null);
+    }
 });
 
 $('ed-export').onclick = () => {
@@ -1634,7 +1923,15 @@ $('ed-export').onclick = () => {
     const lines = editorModels.map(m => {
         const p = m.object.position, r = m.object.rotation, s = m.object.scale;
         const f = n => Math.round(n * 1000) / 1000;
-        return `  { name:'${m.name}', path:'${m.assetPath}', ` +
+        if (m.isPrimitive) {
+            const args = (m.primitiveArgs || []).join(', ');
+            const col = m.object.material && m.object.material.color ? m.object.material.color.getHexString() : 'cccccc';
+            return `  { type:'primitive', shape:'${m.primitiveType}', args:[${args}], color:'#${col}', name:'${m.name}', ` +
+                   `position:[${f(p.x)}, ${f(p.y)}, ${f(p.z)}], ` +
+                   `rotation:[${f(r.x/ED_RAD)}, ${f(r.y/ED_RAD)}, ${f(r.z/ED_RAD)}], ` +
+                   `scale:[${f(s.x)}, ${f(s.y)}, ${f(s.z)}] }`;
+        }
+        return `  { type:'model', name:'${m.name}', path:'${m.assetPath}', ` +
                `position:[${f(p.x)}, ${f(p.y)}, ${f(p.z)}], ` +
                `rotation:[${f(r.x/ED_RAD)}, ${f(r.y/ED_RAD)}, ${f(r.z/ED_RAD)}], ` +
                `scale:[${f(s.x)}, ${f(s.y)}, ${f(s.z)}] }`;
@@ -1691,7 +1988,7 @@ function animate() {
 
     if (editorMode) {
         updateEditorCamera(dt);
-        if (editorBox && editorSelected) editorBox.setFromObject(editorSelected);
+        editorSelection.forEach((obj, i) => { if (editorBoxes[i]) editorBoxes[i].setFromObject(obj); });
         sky.position.copy(camera.position);
         renderer.render(scene, camera);
         return;
